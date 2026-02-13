@@ -6,7 +6,7 @@
     <title>Neural Notes Unlimited</title>
     <style>
         :root { --bg-color: #0b0b0b; --fg-color: #00ffcc; --vis-color: #00ffcc; --alankar-color: #f1c40f; }
-        body { font-family: 'Segoe UI', sans-serif; text-align: center; background: var(--bg-color); color: #fff; margin: 0; overflow: hidden; height: 100vh; display: flex; transition: background 0.15s ease; }
+        body { font-family: 'Segoe UI', sans-serif; text-align: center; background-color: var(--bg-color); color: #fff; margin: 0; overflow: hidden; height: 100vh; display: flex; transition: background-color 0.15s ease; }
         
         #header-title { position: absolute; top: 15px; width: 100%; z-index: 10; font-size: 1.2rem; font-weight: bold; color: var(--fg-color); letter-spacing: 2px; text-transform: uppercase; pointer-events: none; }
         #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
@@ -73,7 +73,6 @@
                             <option value="Ni.,Re,Ga,Ma,Pa,Dha,Ni,Sa.">Yaman Aroha</option>
                             <option value="Sa.,Ni,Dha,Pa,Ma,Ga,Re,Sa">Yaman Avaroha</option>
                             <option value="Sa,re,Ga,ma,Pa,dha,Ni,Sa.">Bhairav Aroha</option>
-                            <option value="Sa.,Ni,dha,Pa,ma,Ga,re,Sa">Bhairav Avaroha</option>
                         </optgroup>
                     </select>
                 </div>
@@ -111,8 +110,7 @@
         let completedBars = [];
         let alankarSequence = [];
         let currentMatchIndex = 0;
-        let midiAccess = null;
-        let keys = {}; // FIXED: Declared once here
+        let keys = {};
 
         function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; buildKeyboard(); }
         window.addEventListener('resize', resize); resize();
@@ -240,8 +238,8 @@
 
         async function initMIDI() {
             try {
-                midiAccess = await navigator.requestMIDIAccess();
-                const inputs = Array.from(midiAccess.inputs.values());
+                const midi = await navigator.requestMIDIAccess();
+                const inputs = Array.from(midi.inputs.values());
                 if (inputs[0]) inputs[0].onmidimessage = onMidiMessage;
                 document.getElementById('initBtn').innerText = "MIDI Live";
                 display.innerText = "READY";
@@ -250,9 +248,19 @@
 
         for(let i=-12; i<=12; i++) { let opt = new Option(i, i); if (i === 0) opt.selected = true; transposeSelect.add(opt); }
         transposeSelect.onchange = buildKeyboard;
-        fgColorInput.oninput = () => document.documentElement.style.setProperty('--fg-color', fgColorInput.value);
-        bgColorInput.oninput = () => document.documentElement.style.setProperty('--bg-color', bgColorInput.value);
-        alankarColorInput.oninput = () => document.documentElement.style.setProperty('--alankar-color', alankarColorInput.value);
+        
+        // --- Immediate Color Handlers ---
+        fgColorInput.oninput = () => {
+            document.documentElement.style.setProperty('--fg-color', fgColorInput.value);
+        };
+        bgColorInput.oninput = () => {
+            document.documentElement.style.setProperty('--bg-color', bgColorInput.value);
+            document.body.style.backgroundColor = bgColorInput.value;
+        };
+        alankarColorInput.oninput = () => {
+            document.documentElement.style.setProperty('--alankar-color', alankarColorInput.value);
+        };
+
         document.getElementById('glowNote').onchange = () => display.classList.toggle('glow', document.getElementById('glowNote').checked);
         document.getElementById('initBtn').onclick = initMIDI;
         buildKeyboard();
