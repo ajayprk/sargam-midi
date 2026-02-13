@@ -3,54 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neural Notes Unlimited - Advanced Alankar Monitor</title>
+    <title>Neural Notes Unlimited</title>
     <style>
         :root { --bg-color: #0b0b0b; --fg-color: #00ffcc; --vis-color: #00ffcc; --alankar-color: #f1c40f; }
-        body { 
-            font-family: 'Segoe UI', sans-serif; text-align: center; 
-            background: var(--bg-color); color: #fff; margin: 0; 
-            overflow: hidden; height: 100vh; display: flex; transition: background 0.3s ease;
-        }
+        body { font-family: 'Segoe UI', sans-serif; text-align: center; background: var(--bg-color); color: #fff; margin: 0; overflow: hidden; height: 100vh; display: flex; transition: background 0.3s ease; }
         
-        #header-title { 
-            position: absolute; top: 15px; width: 100%; z-index: 10;
-            font-size: 1.2rem; font-weight: bold; color: var(--fg-color);
-            letter-spacing: 2px; text-transform: uppercase; pointer-events: none;
-        }
-
+        #header-title { position: absolute; top: 15px; width: 100%; z-index: 10; font-size: 1.2rem; font-weight: bold; color: var(--fg-color); letter-spacing: 2px; text-transform: uppercase; pointer-events: none; }
         #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
-        
+        canvas { display: block; }
+
         #ui-layer { position: relative; z-index: 100; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; }
         .interactive { pointer-events: auto !important; }
 
-        #alankar-overlay {
-            position: absolute; top: 60px; width: 90%; max-width: 1400px; height: 180px;
-            display: flex; justify-content: center; align-items: flex-end; z-index: 5; overflow: hidden;
-        }
-        .alankar-note { flex: 1 1 auto; min-width: 5px; text-align: center; font-size: clamp(0.6rem, 2vw, 1.4rem); font-weight: bold; color: #444; position: relative; transition: all 0.2s ease; }
+        #alankar-overlay { position: absolute; top: 60px; width: 90%; max-width: 1400px; height: 180px; display: flex; justify-content: center; align-items: flex-end; z-index: 50; overflow: hidden; }
+        .alankar-note { flex: 1 1 auto; min-width: 5px; text-align: center; font-size: clamp(0.5rem, 1.5vw, 1.4rem); font-weight: bold; color: #444; position: relative; transition: all 0.2s ease; }
         .alankar-note.matched { color: var(--alankar-color) !important; opacity: 1; text-shadow: 0 0 10px var(--alankar-color); transform: scale(1.2); }
         .alankar-note.next { border-bottom: 2px solid var(--alankar-color); color: #888; }
 
-        #display-container { flex-grow: 1; width: 100%; display: flex; justify-content: center; align-items: center; }
+        #display-container { flex-grow: 1; width: 100%; display: flex; justify-content: center; align-items: center; pointer-events: none; }
         #display { font-size: 10rem; font-weight: bold; color: var(--fg-color); line-height: 1; transition: opacity 0.05s; }
         .glow { text-shadow: 0 0 30px var(--fg-color); }
-        
-        .settings-container { 
-            position: absolute; right: 20px; top: 50px; background: rgba(20, 20, 20, 0.95); backdrop-filter: blur(15px); 
-            border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; text-align: left; width: 300px; color: #fff; z-index: 200;
-        }
+
+        .settings-container { position: absolute; right: 20px; top: 50px; background: rgba(20, 20, 20, 0.95); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; text-align: left; width: 300px; color: #fff; z-index: 500; }
         .settings-header { padding: 12px 15px; cursor: pointer; display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .settings-content { padding: 15px; max-height: 75vh; overflow-y: auto; pointer-events: auto; }
         .settings-container.minimized { width: 100px; height: 45px; }
+        .settings-container.minimized .settings-content { display: none; }
 
         .control-group { margin: 10px 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 0.85rem; }
         select, button, input { background: #111; color: #fff; border: 1px solid #444; padding: 6px; border-radius: 4px; pointer-events: auto; }
         #initBtn, .action-btn { background: #27ae60; width: 100%; font-weight: bold; border: none; padding: 10px; cursor: pointer; color: white; border-radius: 4px; }
         .action-btn { background: #2980b9; margin-top: 10px; }
 
-        #keyboard { display: flex; justify-content: center; position: absolute; bottom: 0; width: 100%; z-index: 20; background: rgba(0,0,0,0.9); padding: 25px 0; pointer-events: auto; }
-        .key { border: 1px solid #333; height: 100px; width: 34px; background: #eee; flex-shrink: 1; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 8px; font-size: 0.6rem; color: #333; font-weight: bold; }
-        .key.black { background: #222; height: 60px; width: 22px; margin-left: -11px; margin-right: -11px; z-index: 21; color: #fff; }
+        #keyboard { display: flex; justify-content: center; position: absolute; bottom: 0; width: 100%; z-index: 400; background: rgba(0,0,0,0.9); padding: 25px 0; pointer-events: auto; }
+        .key { border: 1px solid #333; height: 100px; width: 34px; background: #eee; flex-shrink: 1; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 8px; font-size: 0.6rem; color: #333; font-weight: bold; pointer-events: auto; }
+        .key.black { background: #222; height: 60px; width: 22px; margin-left: -11px; margin-right: -11px; z-index: 421; color: #fff; }
         .key.active { background: var(--fg-color) !important; color: #000; box-shadow: 0 0 15px var(--fg-color); }
     </style>
 </head>
@@ -72,36 +59,32 @@
                 <div class="control-group"><label>Swar Color:</label><input type="color" id="fgColor" class="interactive" value="#00ffcc"></div>
                 <div class="control-group"><label>Alankar Color:</label><input type="color" id="alankarColor" class="interactive" value="#f1c40f"></div>
                 
-                <hr style="border:0; border-top:1px solid #444; margin:15px 0;">
+                <hr style="border:0; border-top:1px solid #444; margin:10px 0;">
                 
                 <div class="control-group"><label>Select Alankar:</label>
-                    <select id="alankarSelect" class="interactive" style="width:140px;" onchange="handleAlankarSelection()">
+                    <select id="alankarSelect" class="interactive" onchange="handleAlankarSelection()">
                         <option value="custom">Custom Alankar</option>
                         <optgroup label="Standard Alankars">
-                            <option value="Sa,Re,Ga,ma,Pa,Dha,Ni,Sa.">1. Simple Aroha</option>
-                            <option value="Sa,Re,Sa,Re,Ga,Re,Ga,ma,Re,Ga,ma,Pa">2. Doublets</option>
-                            <option value="Sa,Re,Ga,Re,Ga,ma,Ga,ma,Pa,ma,Pa,Dha">3. Triplets</option>
+                            <option value="Sa,Re,Ga,ma,Pa,Dha,Ni,Sa.">Aroha (Standard)</option>
+                            <option value="Sa,Re,Sa,Re,Ga,Re,Ga,ma,Ga,ma,Pa">Doublets (Hindustani)</option>
+                            <option value="Sa,Re,Ga,Re,Ga,ma,Ga,ma,Pa">Triplets (Hindustani)</option>
                         </optgroup>
-                        <optgroup label="Raga Yaman">
-                            <option value="Ni.,Re,Ga,Ma,Pa,Dha,Ni,Sa.">Yaman Aroha (Teevra Ma)</option>
-                        </optgroup>
-                        <optgroup label="Raga Bhairav">
-                            <option value="Sa,re,Ga,ma,Pa,dha,Ni,Sa.">Bhairav Aroha (Komal re, dha)</option>
+                        <optgroup label="Ragas">
+                            <option value="Ni.,Re,Ga,Ma,Pa,Dha,Ni,Sa.">Yaman Aroha</option>
+                            <option value="Sa,re,Ga,ma,Pa,dha,Ni,Sa.">Bhairav Aroha</option>
                         </optgroup>
                     </select>
                 </div>
-
                 <div id="custom-alankar-input" class="control-group" style="flex-direction:column; align-items:flex-start;">
-                    <label>Input (comma separated):</label>
-                    <input type="text" id="alankarInput" class="interactive" placeholder=".Sa,Re,Ga,Ma." style="width:100%; margin-top:5px;">
+                    <input type="text" id="alankarInput" class="interactive" placeholder=".Sa,Re,Ga..." style="width:100%;">
                 </div>
                 <button class="action-btn" onclick="parseAlankar()">Load Alankar</button>
 
-                <hr style="border:0; border-top:1px solid #444; margin:15px 0;">
-                <div class="control-group"><label>Show Notes:</label><input type="checkbox" id="showNote" class="interactive" checked></div>
-                <div class="control-group"><label>Note Glow:</label><input type="checkbox" id="glowNote" class="interactive" checked></div>
-                <div class="control-group"><label>Show Bars:</label><input type="checkbox" id="showBars" class="interactive" checked></div>
-                <div class="control-group"><label>Particles:</label><input type="checkbox" id="showParticles" class="interactive" checked></div>
+                <hr style="border:0; border-top:1px solid #444; margin:10px 0;">
+                <div class="control-group"><label>Show Notes:</label><input type="checkbox" id="showNote" checked></div>
+                <div class="control-group"><label>Note Glow:</label><input type="checkbox" id="glowNote" checked></div>
+                <div class="control-group"><label>Show Bars:</label><input type="checkbox" id="showBars" checked></div>
+                <div class="control-group"><label>Particles:</label><input type="checkbox" id="showParticles" checked></div>
             </div>
         </div>
     </div>
@@ -119,8 +102,6 @@
         const alankarColorInput = document.getElementById('alankarColor');
         const display = document.getElementById('display');
         const alankarOverlay = document.getElementById('alankar-overlay');
-        const alankarSelect = document.getElementById('alankarSelect');
-        const customInputArea = document.getElementById('custom-alankar-input');
 
         let pressedNotes = new Set();
         let activeBars = new Map();
@@ -128,16 +109,15 @@
         let completedBars = [];
         let alankarSequence = [];
         let currentMatchIndex = 0;
+        let midiAccess = null;
 
-        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; buildKeyboard(); }
         window.addEventListener('resize', resize); resize();
 
         function handleAlankarSelection() {
-            if (alankarSelect.value === 'custom') {
-                customInputArea.style.display = 'flex';
-            } else {
-                customInputArea.style.display = 'none';
-                document.getElementById('alankarInput').value = alankarSelect.value;
+            const select = document.getElementById('alankarSelect');
+            if (select.value !== 'custom') {
+                document.getElementById('alankarInput').value = select.value;
             }
         }
 
@@ -154,14 +134,14 @@
 
                 const noteDiv = document.createElement('div');
                 noteDiv.className = 'alankar-note' + (idx === 0 ? ' next' : '');
-                let displaySwar = swar;
-                if (raw.startsWith('.')) displaySwar = swar + "\u0323";
-                if (raw.endsWith('.')) displaySwar = "\u0307" + swar;
-                noteDiv.innerText = displaySwar;
+                let dSwar = swar;
+                if (raw.startsWith('.')) dSwar = swar + "\u0323";
+                if (raw.endsWith('.')) dSwar = "\u0307" + swar;
+                noteDiv.innerText = dSwar;
                 noteDiv.style.bottom = (((rank + 12) / 36) * 150) + 'px';
                 
                 alankarOverlay.appendChild(noteDiv);
-                alankarSequence.push({ swar: displaySwar, el: noteDiv });
+                alankarSequence.push({ swar: dSwar, el: noteDiv });
             });
         }
 
@@ -220,8 +200,9 @@
                 if (keys[note]) {
                     keys[note].classList.add('active');
                     const r = keys[note].getBoundingClientRect();
-                    activeBars.set(note, new NoteBar(r.left, r.width, fgColorInput.value));
-                    if (document.getElementById('showParticles').checked) for(let i=0; i<8; i++) particles.push(new Particle(r.left + r.width/2, r.top, fgColorInput.value));
+                    const vColor = getComputedStyle(document.documentElement).getPropertyValue('--fg-color');
+                    activeBars.set(note, new NoteBar(r.left, r.width, vColor));
+                    if (document.getElementById('showParticles').checked) for(let i=0; i<8; i++) particles.push(new Particle(r.left + r.width/2, r.top, vColor));
                 }
             } else if (type === 0x80 || (type === 0x90 && velocity === 0)) {
                 pressedNotes.delete(note); if (pressedNotes.size === 0) display.innerText = "";
@@ -230,15 +211,12 @@
             }
         }
 
-        function toggleSettings() {
-            settingsBox.classList.toggle('minimized');
-            document.getElementById('toggleIcon').innerText = settingsBox.classList.contains('minimized') ? "+" : "−";
-        }
+        function toggleSettings() { settingsBox.classList.toggle('minimized'); document.getElementById('toggleIcon').innerText = settingsBox.classList.contains('minimized') ? "+" : "−"; }
 
         function buildKeyboard() {
             keyboard.innerHTML = '';
-            for (let i = 0; i < totalNotes; i++) {
-                const midi = startNote + i;
+            for (let i = 0; i < 37; i++) {
+                const midi = 48 + i;
                 const div = document.createElement('div');
                 div.className = `key ${[1, 3, 6, 8, 10].includes(midi % 12) ? 'black' : 'white'}`;
                 div.innerText = getSwarLabel(midi);
@@ -249,18 +227,21 @@
 
         async function initMIDI() {
             try {
-                const midi = await navigator.requestMIDIAccess();
-                const inputs = Array.from(midi.inputs.values());
-                if (inputs[0]) {
-                    inputs[0].onmidimessage = onMidiMessage;
+                midiAccess = await navigator.requestMIDIAccess();
+                const inputs = Array.from(midiAccess.inputs.values());
+                const refresh = () => {
+                    const selector = document.createElement('select'); selector.className = 'interactive';
+                    midiAccess.inputs.forEach(input => selector.add(new Option(input.name, input.id)));
+                    selector.onchange = () => { midiAccess.inputs.get(selector.value).onmidimessage = onMidiMessage; };
+                    if (inputs[0]) inputs[0].onmidimessage = onMidiMessage;
+                    document.getElementById('initBtn').innerText = "MIDI Live";
                     display.innerText = "READY";
-                    initBtn.innerText = "MIDI Live";
-                    initBtn.style.background = "#555";
-                    setTimeout(toggleSettings, 1000);
-                }
+                };
+                refresh();
             } catch (err) { alert("Access Denied"); }
         }
 
+        const keys = {};
         for(let i=-12; i<=12; i++) { let opt = new Option(i, i); if (i === 0) opt.selected = true; transposeSelect.add(opt); }
         transposeSelect.onchange = buildKeyboard;
         fgColorInput.oninput = () => document.documentElement.style.setProperty('--fg-color', fgColorInput.value);
