@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neural Notes - Advanced Sargam Monitor</title>
+    <title>Neural Notes - Sargam MIDI Monitor</title>
     <style>
         :root { --bg-color: #0b0b0b; --fg-color: #00ffcc; }
         body { 
@@ -13,6 +13,7 @@
         }
         
         #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+        canvas { display: block; }
         
         #ui-layer { 
             position: relative; z-index: 10; width: 100%; height: 100%;
@@ -27,7 +28,6 @@
             text-shadow: 0 0 30px var(--fg-color); line-height: 1;
         }
         
-        /* Settings Box - Moved to Right */
         .settings-container { 
             background: rgba(20, 20, 20, 0.85); backdrop-filter: blur(15px); 
             border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; 
@@ -36,12 +36,13 @@
         }
         
         .settings-header { padding: 12px 15px; cursor: pointer; display: flex; justify-content: space-between; background: rgba(255,255,255,0.05); }
-        .settings-content { padding: 15px; max-height: 80vh; overflow-y: auto; }
-        .settings-container.minimized { width: 60px; height: 40px; overflow: hidden; }
+        .settings-content { padding: 15px; }
+        .settings-container.minimized { width: 120px; }
+        .settings-container.minimized .settings-content { display: none; }
 
         .control-group { margin: 12px 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 0.9rem; }
         select, button, input { background: #111; color: #fff; border: 1px solid #444; padding: 5px; border-radius: 4px; }
-        #initBtn { background: #27ae60; width: 100%; font-weight: bold; border: none; padding: 10px; margin-bottom: 10px; cursor: pointer; }
+        #initBtn { background: #27ae60; width: 100%; font-weight: bold; border: none; padding: 10px; cursor: pointer; }
 
         #keyboard { 
             display: flex; justify-content: center; position: absolute; bottom: 0; 
@@ -66,7 +67,6 @@
     <div id="ui-layer">
         <div id="display-container">
             <div id="display">READY</div>
-            <div id="status-bar" style="color:#666; margin-top:10px;">Transpose Active</div>
         </div>
 
         <div class="settings-container interactive" id="settingsBox">
@@ -80,14 +80,8 @@
                 <div class="control-group"><label>Background:</label><input type="color" id="bgColor" value="#0b0b0b"></div>
                 <div class="control-group"><label>Swar Color:</label><input type="color" id="fgColor" value="#00ffcc"></div>
                 <hr style="border:0; border-top:1px solid #444; margin:15px 0;">
-                <div class="control-group">
-                    <label>Show Bars:</label>
-                    <input type="checkbox" id="showBars" checked>
-                </div>
-                <div class="control-group">
-                    <label>Show Particles:</label>
-                    <input type="checkbox" id="showParticles" checked>
-                </div>
+                <div class="control-group"><label>Show Bars:</label><input type="checkbox" id="showBars" checked></div>
+                <div class="control-group"><label>Show Particles:</label><input type="checkbox" id="showParticles" checked></div>
             </div>
         </div>
     </div>
@@ -111,7 +105,7 @@
         const startNote = 48; 
         const totalNotes = 37; 
         const keys = {};
-        let activeNotes = new Map(); // Tracks held notes for bars
+        let activeBars = new Map(); 
         let particles = [];
         let completedBars = [];
 
@@ -119,7 +113,6 @@
         window.addEventListener('resize', resize);
         resize();
 
-        // --- Visual Classes ---
         class Particle {
             constructor(x, y, color) {
                 this.x = x; this.y = y;
@@ -141,38 +134,36 @@
             constructor(x, width, color) {
                 this.x = x; this.width = width;
                 this.startY = canvas.height - 180;
-                this.endY = canvas.height - 180;
+                this.currentY = canvas.height - 180;
                 this.color = color;
                 this.active = true;
                 this.alpha = 0.6;
             }
             update() {
                 if (this.active) {
-                    this.endY -= 8; // Growth speed
+                    this.currentY -= 8; 
                 } else {
                     this.startY -= 8;
-                    this.endY -= 8;
+                    this.currentY -= 8;
                     this.alpha -= 0.01;
                 }
             }
             draw() {
                 ctx.globalAlpha = this.alpha;
                 ctx.fillStyle = this.color;
-                ctx.fillRect(this.x, this.endY, this.width, this.startY - this.endY);
+                ctx.fillRect(this.x, this.currentY, this.width, this.startY - this.currentY);
             }
         }
 
         function animate() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
             if (showBars.checked) {
-                activeNotes.forEach(bar => { bar.update(); bar.draw(); });
+                activeBars.forEach(bar => { bar.update(); bar.draw(); });
                 completedBars.forEach((bar, i) => { 
                     bar.update(); bar.draw(); 
                     if (bar.alpha <= 0 || bar.startY < 0) completedBars.splice(i, 1);
                 });
             }
-
             if (showParticles.checked) {
                 particles.forEach((p, i) => { p.update(); p.draw(); if(p.life <= 0) particles.splice(i, 1); });
             }
@@ -180,18 +171,13 @@
         }
         animate();
 
-        // --- Core Functions ---
         function getSwarWithSaptak(midiNote) {
             const trans = parseInt(transposeSelect.value) || 0;
             const adjustedNote = midiNote + trans;
             const baseIndex = (adjustedNote % 12 + 12) % 12;
             let swar = sargamNotes[baseIndex];
-
-            // Mandra Saptak (Notes below middle C equivalent)
             if (adjustedNote < 60) return swar + "\u0323"; 
-            // Tar Saptak (Notes above middle B equivalent)
             if (adjustedNote >= 72) return "\u0307" + swar;
-            
             return swar;
         }
 
@@ -204,31 +190,25 @@
                 if (keys[note]) {
                     keys[note].classList.add('active');
                     const r = keys[note].getBoundingClientRect();
-                    // Start a new growing bar
-                    activeNotes.set(note, new NoteBar(r.left, r.width, fgColorInput.value));
-                    // Particles burst
+                    activeBars.set(note, new NoteBar(r.left, r.width, fgColorInput.value));
                     if (showParticles.checked) {
                         for(let i=0; i<10; i++) particles.push(new Particle(r.left + r.width/2, r.top, fgColorInput.value));
                     }
                 }
             } else if (type === 128 || (type === 144 && vel === 0)) {
-                if (keys[note]) {
-                    keys[note].classList.remove('active');
-                    const bar = activeNotes.get(note);
-                    if (bar) {
-                        bar.active = false;
-                        completedBars.push(bar);
-                        activeNotes.delete(note);
-                    }
+                if (keys[note]) keys[note].classList.remove('active');
+                const bar = activeBars.get(note);
+                if (bar) {
+                    bar.active = false;
+                    completedBars.push(bar);
+                    activeBars.delete(note);
                 }
             }
         }
 
-        // Previous settings/keyboard building logic remains similar but updated for UI
         function toggleSettings() {
-            const box = document.getElementById('settingsBox');
-            box.classList.toggle('minimized');
-            document.getElementById('toggleIcon').innerText = box.classList.contains('minimized') ? "+" : "−";
+            settingsBox.classList.toggle('minimized');
+            document.getElementById('toggleIcon').innerText = settingsBox.classList.contains('minimized') ? "+" : "−";
         }
 
         function buildKeyboard() {
@@ -245,28 +225,36 @@
         }
 
         async function initMIDI() {
-            const access = await navigator.requestMIDIAccess();
-            initBtn.innerText = "MIDI Live";
-            const refresh = () => {
-                midiSelect.innerHTML = '<option>Device List</option>';
-                for (let input of access.inputs.values()) {
-                    midiSelect.add(new Option(input.name, input.id));
-                }
-            };
-            refresh();
-            midiSelect.onchange = () => {
-                if (currentInput) currentInput.onmidimessage = null;
-                currentInput = access.inputs.get(midiSelect.value);
-                if (currentInput) currentInput.onmidimessage = handleMIDI;
-            };
+            try {
+                const access = await navigator.requestMIDIAccess();
+                initBtn.innerText = "MIDI Live";
+                const refresh = () => {
+                    midiSelect.innerHTML = '<option>Device List</option>';
+                    for (let input of access.inputs.values()) {
+                        midiSelect.add(new Option(input.name, input.id));
+                    }
+                };
+                refresh();
+                midiSelect.onchange = () => {
+                    if (currentInput) currentInput.onmidimessage = null;
+                    currentInput = access.inputs.get(midiSelect.value);
+                    if (currentInput) currentInput.onmidimessage = handleMIDI;
+                };
+            } catch (e) { alert("MIDI Access Denied"); }
         }
 
-        // Init
-        for(let i=-12; i<=12; i++) transposeSelect.add(new Option(i, i));
+        // --- Init & Persistence ---
+        for(let i=-12; i<=12; i++) {
+            let opt = new Option(i, i);
+            if (i === 0) opt.selected = true;
+            transposeSelect.add(opt);
+        }
+
         transposeSelect.onchange = buildKeyboard;
         bgColorInput.oninput = () => document.documentElement.style.setProperty('--bg-color', bgColorInput.value);
         fgColorInput.oninput = () => document.documentElement.style.setProperty('--fg-color', fgColorInput.value);
         initBtn.onclick = initMIDI;
+        
         buildKeyboard();
     </script>
 </body>
