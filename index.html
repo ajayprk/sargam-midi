@@ -15,16 +15,16 @@
         #ui-layer { position: relative; z-index: 100; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; }
         .interactive { pointer-events: auto !important; }
 
-        /* Constrained Alankar Overlay */
-        #alankar-wrapper { position: absolute; bottom: 180px; width: auto; height: 150px; display: flex; justify-content: center; z-index: 50; }
-        #alankar-overlay { display: flex; justify-content: center; align-items: flex-end; gap: 10px; height: 100%; }
-        .alankar-note { font-size: clamp(0.7rem, 2vw, 1.4rem); font-weight: bold; color: #444; position: relative; transition: all 0.2s ease; white-space: nowrap; }
+        /* Alankar moved to TOP half and constrained */
+        #alankar-wrapper { position: absolute; top: 80px; width: 80%; height: 150px; display: flex; justify-content: center; z-index: 50; transition: opacity 0.3s; }
+        #alankar-overlay { display: flex; justify-content: center; align-items: flex-end; width: 100%; height: 100%; }
+        .alankar-note { font-weight: bold; color: #444; position: relative; transition: all 0.2s ease; white-space: nowrap; flex: 0 1 auto; }
         .alankar-note.matched { color: var(--alankar-color) !important; opacity: 1; text-shadow: 0 0 10px var(--alankar-color); transform: scale(1.2); }
         .alankar-note.next { border-bottom: 2px solid var(--alankar-color); color: #888; }
 
-        #display-container { flex-grow: 1; width: 100%; display: flex; justify-content: center; align-items: center; pointer-events: none; }
+        #display-container { flex-grow: 1; width: 100%; display: flex; justify-content: center; align-items: center; pointer-events: none; margin-top: 100px; }
         #display { font-size: 10rem; font-weight: bold; color: var(--fg-color); line-height: 1; }
-        .glow { text-shadow: 0 0 30px var(--fg-color); }
+        .glow-active { text-shadow: 0 0 35px var(--fg-color); }
 
         .settings-container { position: absolute; right: 20px; top: 20px; background: rgba(20, 20, 20, 0.95); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; text-align: left; width: 280px; color: #fff; z-index: 999; }
         .settings-header { padding: 12px 15px; cursor: pointer; display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); }
@@ -40,7 +40,7 @@
         #keyboard { display: flex; justify-content: center; position: absolute; bottom: 0; width: fit-content; max-width: 100%; z-index: 400; background: rgba(0,0,0,0.9); padding: 25px 20px; pointer-events: auto; left: 50%; transform: translateX(-50%); }
         .key { border: 1px solid #333; height: 100px; width: 34px; background: #eee; flex-shrink: 0; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 8px; font-size: 0.6rem; color: #333; font-weight: bold; }
         .key.black { background: #222; height: 60px; width: 22px; margin-left: -11px; margin-right: -11px; z-index: 421; color: #fff; }
-        .key.active { background: var(--fg-color) !important; color: #000; box-shadow: 0 0 15px var(--fg-color); }
+        .key.active { background: var(--fg-color) !important; color: #000; }
     </style>
 </head>
 <body>
@@ -50,7 +50,7 @@
     <div id="canvas-container"><canvas id="visualizer"></canvas></div>
 
     <div id="ui-layer">
-        <div id="display-container"><div id="display" class="glow"></div></div>
+        <div id="display-container"><div id="display"></div></div>
 
         <div class="settings-container interactive" id="settingsBox">
             <div class="settings-header" onclick="toggleSettings()"><span>Settings</span><span id="toggleIcon">−</span></div>
@@ -62,14 +62,10 @@
                 <div class="control-group"><label>Alankar Color:</label><input type="color" id="alankarColor" class="interactive" value="#f1c40f"></div>
                 
                 <hr style="border:0; border-top:1px solid #444; margin:10px 0;">
-                <div class="control-group"><label>Load Alankar File:</label><input type="file" id="alankarFile" accept=".txt" class="interactive" style="width:120px;"></div>
+                <div class="control-group"><label>Alankar File:</label><input type="file" id="alankarFile" accept=".txt" class="interactive" style="width:120px;"></div>
                 <div class="control-group"><label>Select Alankar:</label>
                     <select id="alankarSelect" class="interactive" onchange="handleAlankarSelection()">
                         <option value="custom">Custom Alankar</option>
-                        <optgroup label="Standard Alankars">
-                            <option value="Sa,Re,Ga,ma,Pa,Dha,Ni,Sa.">Aroha</option>
-                            <option value="Sa.,Ni,Dha,Pa,ma,Ga,Re,Sa">Avaroha</option>
-                        </optgroup>
                         <optgroup id="fileAlankars" label="My Loaded Alankars"></optgroup>
                     </select>
                 </div>
@@ -80,6 +76,7 @@
 
                 <hr style="border:0; border-top:1px solid #444; margin:10px 0;">
                 <div class="control-group"><label>Show Notes:</label><input type="checkbox" id="showNote" checked></div>
+                <div class="control-group"><label>Show Alankar:</label><input type="checkbox" id="showAlankar" checked></div>
                 <div class="control-group"><label>Note Glow:</label><input type="checkbox" id="glowNote" checked></div>
                 <div class="control-group"><label>Show Bars:</label><input type="checkbox" id="showBars" checked></div>
                 <div class="control-group"><label>Particles:</label><input type="checkbox" id="showParticles" checked></div>
@@ -110,60 +107,51 @@
         let currentMatchIndex = 0;
         let keys = {};
 
-        // --- Local Persistence ---
         function saveToLocal() {
-            const settings = {
-                transpose: transposeSelect.value,
-                bg: bgColorInput.value,
-                fg: fgColorInput.value,
-                alankar: alankarColorInput.value,
-                showNote: document.getElementById('showNote').checked,
-                glow: document.getElementById('glowNote').checked,
-                bars: document.getElementById('showBars').checked,
-                particles: document.getElementById('showParticles').checked,
-                customInput: document.getElementById('alankarInput').value
-            };
-            localStorage.setItem('nnSettings', JSON.stringify(settings));
+            localStorage.setItem('nnSettings', JSON.stringify({
+                transpose: transposeSelect.value, bg: bgColorInput.value, fg: fgColorInput.value,
+                alankar: alankarColorInput.value, showNote: document.getElementById('showNote').checked,
+                showAlankar: document.getElementById('showAlankar').checked,
+                glow: document.getElementById('glowNote').checked, bars: document.getElementById('showBars').checked,
+                particles: document.getElementById('showParticles').checked, customInput: document.getElementById('alankarInput').value
+            }));
         }
 
         function loadFromLocal() {
             const saved = JSON.parse(localStorage.getItem('nnSettings') || '{}');
             if (saved.bg) {
-                bgColorInput.value = saved.bg;
-                document.body.style.backgroundColor = saved.bg;
-                fgColorInput.value = saved.fg;
-                document.documentElement.style.setProperty('--fg-color', saved.fg);
-                alankarColorInput.value = saved.alankar;
-                document.documentElement.style.setProperty('--alankar-color', saved.alankar);
+                bgColorInput.value = saved.bg; document.body.style.backgroundColor = saved.bg;
+                fgColorInput.value = saved.fg; document.documentElement.style.setProperty('--fg-color', saved.fg);
+                alankarColorInput.value = saved.alankar; document.documentElement.style.setProperty('--alankar-color', saved.alankar);
                 transposeSelect.value = saved.transpose;
                 document.getElementById('showNote').checked = saved.showNote;
+                document.getElementById('showAlankar').checked = saved.showAlankar !== undefined ? saved.showAlankar : true;
                 document.getElementById('glowNote').checked = saved.glow;
                 document.getElementById('showBars').checked = saved.bars;
                 document.getElementById('showParticles').checked = saved.particles;
                 document.getElementById('alankarInput').value = saved.customInput || '';
-                display.classList.toggle('glow', saved.glow);
+                updateVisibilities();
             }
         }
 
-        // --- File Handling ---
+        function updateVisibilities() {
+            alankarWrapper.style.opacity = document.getElementById('showAlankar').checked ? "1" : "0";
+            saveToLocal();
+        }
+
         document.getElementById('alankarFile').addEventListener('change', function(e) {
-            const file = e.target.files[0];
             const reader = new FileReader();
-            reader.onload = function(progressEvent) {
-                const lines = progressEvent.target.result.split('\n').filter(l => l.trim() !== "");
+            reader.onload = function(ev) {
+                const lines = ev.target.result.split('\n').filter(l => l.trim() !== "");
                 const group = document.getElementById('fileAlankars');
                 group.innerHTML = '';
-                lines.forEach((line, i) => {
-                    const opt = new Option(`File Alankar ${i+1}`, line.trim());
-                    group.add(opt);
-                });
+                lines.forEach((line, i) => group.add(new Option(`Line ${i+1}`, line.trim())));
             };
-            reader.readAsText(file);
+            reader.readAsText(e.target.files[0]);
         });
 
         function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
             buildKeyboard();
             alankarWrapper.style.width = keyboard.offsetWidth + 'px';
         }
@@ -171,9 +159,7 @@
 
         function handleAlankarSelection() {
             const select = document.getElementById('alankarSelect');
-            if (select.value !== 'custom') {
-                document.getElementById('alankarInput').value = select.value;
-            }
+            if (select.value !== 'custom') document.getElementById('alankarInput').value = select.value;
         }
 
         function parseAlankar() {
@@ -181,6 +167,14 @@
             const swaras = input.split(',').map(s => s.trim()).filter(s => s !== "");
             alankarSequence = []; currentMatchIndex = 0; alankarOverlay.innerHTML = '';
             
+            // Dynamic Font Scaling Logic
+            const keyboardWidth = keyboard.offsetWidth;
+            const noteCount = swaras.length;
+            const calculatedSize = Math.min(1.4, (keyboardWidth / noteCount) / 30);
+            const calculatedGap = Math.min(10, (keyboardWidth / noteCount) / 4);
+
+            alankarOverlay.style.gap = `${calculatedGap}px`;
+
             swaras.forEach((raw, idx) => {
                 let swar = raw.replace('.', '');
                 let rank = noteRank[swar] || 0;
@@ -189,12 +183,12 @@
 
                 const noteDiv = document.createElement('div');
                 noteDiv.className = 'alankar-note' + (idx === 0 ? ' next' : '');
+                noteDiv.style.fontSize = `${calculatedSize}rem`;
                 let dSwar = swar;
                 if (raw.startsWith('.')) dSwar = swar + "\u0323";
                 if (raw.endsWith('.')) dSwar = "\u0307" + swar;
                 noteDiv.innerText = dSwar;
                 noteDiv.style.bottom = (((rank + 12) / 36) * 150) + 'px';
-                
                 alankarOverlay.appendChild(noteDiv);
                 alankarSequence.push({ swar: dSwar, el: noteDiv });
             });
@@ -202,9 +196,9 @@
         }
 
         function triggerFlash() {
-            const originalColor = bgColorInput.value;
+            const original = bgColorInput.value;
             document.body.style.backgroundColor = "rgba(255, 0, 0, 0.6)";
-            setTimeout(() => { document.body.style.backgroundColor = originalColor; }, 150);
+            setTimeout(() => { document.body.style.backgroundColor = original; }, 150);
         }
 
         function checkMatch(playedSwar) {
@@ -257,7 +251,11 @@
             if (type === 0x90 && velocity > 0) {
                 pressedNotes.add(note);
                 const swar = getSwarLabel(note);
-                if (document.getElementById('showNote').checked) display.innerText = swar;
+                if (document.getElementById('showNote').checked) {
+                    display.innerText = swar;
+                    if (document.getElementById('glowNote').checked) display.classList.add('glow-active');
+                    else display.classList.remove('glow-active');
+                }
                 checkMatch(swar);
                 if (keys[note]) {
                     keys[note].classList.add('active');
@@ -300,11 +298,11 @@
 
         for(let i=-12; i<=12; i++) { let opt = new Option(i, i); if (i === 0) opt.selected = true; transposeSelect.add(opt); }
         transposeSelect.onchange = () => { buildKeyboard(); saveToLocal(); };
-        
         fgColorInput.oninput = () => { document.documentElement.style.setProperty('--fg-color', fgColorInput.value); saveToLocal(); };
         bgColorInput.oninput = () => { document.documentElement.style.setProperty('--bg-color', bgColorInput.value); document.body.style.backgroundColor = bgColorInput.value; saveToLocal(); };
         alankarColorInput.oninput = () => { document.documentElement.style.setProperty('--alankar-color', alankarColorInput.value); saveToLocal(); };
-        document.getElementById('glowNote').onchange = () => { display.classList.toggle('glow', document.getElementById('glowNote').checked); saveToLocal(); };
+        
+        document.getElementById('showAlankar').onchange = updateVisibilities;
         document.querySelectorAll('input[type="checkbox"]').forEach(c => c.onchange = saveToLocal);
         document.getElementById('initBtn').onclick = initMIDI;
         
