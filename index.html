@@ -6,15 +6,26 @@
     <title>Sargam MIDI Monitor</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background: #fdfdfd; padding: 20px; color: #333; }
-        #display { font-size: 5rem; margin: 20px; font-weight: bold; color: #d35400; min-height: 1.5em; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
-        .controls { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: inline-block; margin-bottom: 30px; }
-        .control-group { margin: 15px 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-        select, button { padding: 8px 12px; font-size: 1rem; border-radius: 4px; border: 1px solid #ccc; cursor: pointer; }
-        button { background-color: #27ae60; color: white; border: none; font-weight: bold; width: 100%; }
-        button:hover { background-color: #2ecc71; }
-        label { font-weight: 600; font-size: 0.9rem; }
         
-        #keyboard { display: flex; justify-content: center; margin-top: 50px; padding-bottom: 50px; overflow-x: auto; }
+        /* Sargam Display */
+        #display { font-size: 6rem; margin: 10px; font-weight: bold; color: #d35400; min-height: 1.5em; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
+        #status-bar { font-size: 0.9rem; color: #7f8c8d; margin-bottom: 20px; font-weight: 600; }
+
+        /* Collapsible Settings Box */
+        .settings-container { background: #fff; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: inline-block; margin-bottom: 20px; overflow: hidden; transition: all 0.3s ease; text-align: left; width: 320px; }
+        .settings-header { background: #f8f9fa; padding: 10px 15px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; }
+        .settings-header h3 { margin: 0; font-size: 1rem; color: #2c3e50; }
+        .settings-content { padding: 15px; }
+        .settings-container.minimized .settings-content { display: none; }
+        .settings-container.minimized { width: 180px; }
+
+        .control-group { margin: 12px 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        select, button { padding: 6px 10px; font-size: 0.9rem; border-radius: 4px; border: 1px solid #ccc; cursor: pointer; }
+        #initBtn { background-color: #27ae60; color: white; border: none; font-weight: bold; width: 100%; margin-bottom: 10px; }
+        label { font-weight: 600; font-size: 0.85rem; }
+
+        /* Keyboard */
+        #keyboard { display: flex; justify-content: center; margin-top: 40px; padding-bottom: 50px; overflow-x: auto; }
         .key { border: 1px solid #999; height: 160px; width: 45px; background: white; box-sizing: border-box; flex-shrink: 0; border-radius: 0 0 4px 4px; position: relative; }
         .key.black { background: #222; height: 100px; width: 32px; margin-left: -16px; margin-right: -16px; z-index: 2; border-radius: 0 0 3px 3px; }
         .key.active { background: #e67e22 !important; box-shadow: inset 0 -5px 10px rgba(0,0,0,0.2); transform: translateY(2px); }
@@ -24,33 +35,35 @@
 
     <h1>Sargam MIDI Monitor</h1>
 
-    <div class="controls">
-        <button id="initBtn">1. Initialize MIDI</button>
-        
-        <div class="control-group">
-            <label for="midiIn">Device:</label>
-            <select id="midiIn"><option value="">-- Connect MIDI --</option></select>
-        </div>
+    <div id="status-bar">Tonic: C | Transpose: 0</div>
 
-        <div class="control-group">
-            <label for="tonic">Tonic (Sa):</label>
-            <select id="tonic">
-                <option value="0">C</option><option value="1">C#</option><option value="2">D</option>
-                <option value="3">D#</option><option value="4">E</option><option value="5">F</option>
-                <option value="6">F#</option><option value="7">G</option><option value="8">G#</option>
-                <option value="9">A</option><option value="10">A#</option><option value="11">B</option>
-            </select>
+    <div class="settings-container" id="settingsBox">
+        <div class="settings-header" onclick="toggleSettings()">
+            <h3>Settings</h3>
+            <span id="toggleIcon">−</span>
         </div>
+        <div class="settings-content">
+            <button id="initBtn">1. Initialize MIDI</button>
+            
+            <div class="control-group">
+                <label for="midiIn">Device:</label>
+                <select id="midiIn"><option value="">-- Connect MIDI --</option></select>
+            </div>
 
-        <div class="control-group">
-            <label for="transpose">Transpose:</label>
-            <select id="transpose">
-                <option value="-12">-12</option><option value="-7">-7</option>
-                <option value="-2">-2</option><option value="-1">-1</option>
-                <option value="0" selected>0 (None)</option>
-                <option value="1">+1</option><option value="2">+2</option>
-                <option value="7">+7</option><option value="12">+12</option>
-            </select>
+            <div class="control-group">
+                <label for="tonic">Tonic (Sa):</label>
+                <select id="tonic" onchange="updateStatusText()">
+                    <option value="0">C</option><option value="1">C#</option><option value="2">D</option>
+                    <option value="3">D#</option><option value="4">E</option><option value="5">F</option>
+                    <option value="6">F#</option><option value="7">G</option><option value="8">G#</option>
+                    <option value="9">A</option><option value="10">A#</option><option value="11">B</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="transpose">Transpose:</label>
+                <select id="transpose" onchange="updateStatusText()"></select>
+            </div>
         </div>
     </div>
 
@@ -66,11 +79,35 @@
         const initBtn = document.getElementById('initBtn');
         const display = document.getElementById('display');
         const keyboard = document.getElementById('keyboard');
+        const statusBar = document.getElementById('status-bar');
+        const settingsBox = document.getElementById('settingsBox');
+        const toggleIcon = document.getElementById('toggleIcon');
 
         const startNote = 48; 
         const totalNotes = 37; 
         const keys = {};
         let currentInput = null;
+
+        function toggleSettings() {
+            settingsBox.classList.toggle('minimized');
+            toggleIcon.innerText = settingsBox.classList.contains('minimized') ? "+" : "−";
+        }
+
+        function updateStatusText() {
+            const tonicText = tonicSelect.options[tonicSelect.selectedIndex].text;
+            const transVal = transposeSelect.value;
+            statusBar.innerText = `Tonic: ${tonicText} | Transpose: ${transVal > 0 ? '+' : ''}${transVal}`;
+        }
+
+        function initTransposeOptions() {
+            for (let i = -12; i <= 12; i++) {
+                const opt = document.createElement('option');
+                opt.value = i;
+                opt.text = i === 0 ? "0" : (i > 0 ? `+${i}` : i);
+                if (i === 0) opt.selected = true;
+                transposeSelect.add(opt);
+            }
+        }
 
         function buildKeyboard() {
             keyboard.innerHTML = '';
@@ -87,8 +124,6 @@
         function handleMidiMessage(message) {
             const [command, rawNote, velocity] = message.data;
             const type = command & 0xf0; 
-
-            // Apply Transpose
             const note = rawNote + parseInt(transposeSelect.value);
 
             if (type === 144 && velocity > 0) { 
@@ -105,7 +140,8 @@
             if (!navigator.requestMIDIAccess) return alert("Browser not supported.");
             try {
                 const midiAccess = await navigator.requestMIDIAccess();
-                initBtn.innerText = "MIDI Initialized";
+                initBtn.innerText = "MIDI Connected";
+                initBtn.style.backgroundColor = "#bdc3c7";
                 initBtn.disabled = true;
 
                 const updateInputs = () => {
@@ -128,13 +164,17 @@
                     if (currentInput) {
                         currentInput.onmidimessage = handleMidiMessage;
                         display.innerText = "Ready!";
+                        // Auto-minimize after device selection for convenience
+                        setTimeout(toggleSettings, 500);
                     }
                 };
             } catch (err) { console.error(err); }
         }
 
         initBtn.addEventListener('click', initMIDI);
+        initTransposeOptions();
         buildKeyboard();
+        updateStatusText();
     </script>
 </body>
 </html>
