@@ -23,29 +23,34 @@
         
         #ui-layer { 
             position: relative; z-index: 10; width: 100%; height: 100%;
-            pointer-events: none; display: flex; justify-content: space-between; align-items: center; padding: 20px; box-sizing: border-box;
+            pointer-events: none; display: flex; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box;
         }
 
         .interactive { pointer-events: auto !important; }
 
-        #display-container { flex-grow: 1; display: flex; flex-direction: column; align-items: center; }
+        /* Centering the Display Container */
+        #display-container { 
+            flex-grow: 1; width: 100%; max-width: 1400px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; 
+        }
         #display { 
             font-size: 10rem; font-weight: bold; color: var(--fg-color); 
-            line-height: 1; transition: opacity 0.1s;
+            line-height: 1; white-space: nowrap; transition: opacity 0.05s;
         }
         .glow { text-shadow: 0 0 30px var(--fg-color); }
         
         .settings-container { 
+            position: absolute; right: 20px; top: 60px;
             background: rgba(20, 20, 20, 0.9); backdrop-filter: blur(15px); 
             border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; 
             text-align: left; width: 280px; color: #fff; pointer-events: auto;
-            box-shadow: -10px 0 30px rgba(0,0,0,0.5); align-self: flex-start; margin-top: 50px;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.5); z-index: 100;
         }
         
         .settings-header { padding: 12px 15px; cursor: pointer; display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .settings-content { padding: 15px; max-height: 75vh; overflow-y: auto; }
+        .settings-content { padding: 15px; max-height: 70vh; overflow-y: auto; }
         .settings-container.minimized .settings-content { display: none; }
-        .settings-container.minimized { width: 100px; }
+        .settings-container.minimized { width: 100px; height: 45px; }
 
         .control-group { margin: 10px 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 0.8rem; }
         select, button, input { background: #111; color: #fff; border: 1px solid #444; padding: 4px; border-radius: 4px; }
@@ -88,7 +93,7 @@
                 <div class="control-group"><label>Swar Color:</label><input type="color" id="fgColor" value="#00ffcc"></div>
                 <div class="control-group"><label>Vis Color:</label><input type="color" id="visColor" value="#00ffcc"></div>
                 <hr style="border:0; border-top:1px solid #444; margin:10px 0;">
-                <div class="control-group"><label>Show Note:</label><input type="checkbox" id="showNote" checked></div>
+                <div class="control-group"><label>Show Notes:</label><input type="checkbox" id="showNote" checked></div>
                 <div class="control-group"><label>Note Glow:</label><input type="checkbox" id="glowNote" checked></div>
                 <div class="control-group"><label>Show Bars:</label><input type="checkbox" id="showBars" checked></div>
                 <div class="control-group"><label>Particles:</label><input type="checkbox" id="showParticles" checked></div>
@@ -188,16 +193,34 @@
             return swar;
         }
 
+        function updateDisplay() {
+            if (!showNoteCheck.checked || pressedNotes.size === 0) {
+                display.innerText = "";
+                return;
+            }
+
+            // Sort notes by pitch and map to Swars
+            const sortedNotes = Array.from(pressedNotes).sort((a, b) => a - b);
+            const swarArray = sortedNotes.map(n => getSwarLabel(n));
+            const swarText = swarArray.join("   ");
+            
+            display.innerText = swarText;
+
+            // Auto-scale Font Size
+            let baseSize = 10; // rem
+            if (swarArray.length > 3) baseSize = 7;
+            if (swarArray.length > 5) baseSize = 5;
+            if (swarArray.length > 8) baseSize = 3;
+            display.style.fontSize = baseSize + "rem";
+        }
+
         function onMidiMessage(event) {
             const [status, note, velocity] = event.data;
             const type = status & 0xf0;
 
             if (type === 0x90 && velocity > 0) { 
                 pressedNotes.add(note);
-                if (showNoteCheck.checked) {
-                    display.innerText = getSwarLabel(note);
-                    display.style.opacity = "1";
-                }
+                updateDisplay();
                 if (keys[note]) {
                     keys[note].classList.add('active');
                     const rect = keys[note].getBoundingClientRect();
@@ -207,17 +230,9 @@
                 }
             } else if (type === 0x80 || (type === 0x90 && velocity === 0)) { 
                 pressedNotes.delete(note);
+                updateDisplay();
                 if (keys[note]) keys[note].classList.remove('active');
                 
-                // Clear display if no more keys are held
-                if (pressedNotes.size === 0) {
-                    display.innerText = "";
-                } else {
-                    // Show the last note still held
-                    const lastNote = Array.from(pressedNotes).pop();
-                    display.innerText = getSwarLabel(lastNote);
-                }
-
                 const bar = activeBars.get(note);
                 if (bar) { bar.active = false; completedBars.push(bar); activeBars.delete(note); }
             }
@@ -254,7 +269,11 @@
                 midiSelect.onchange = () => {
                     if (currentInput) currentInput.onmidimessage = null;
                     currentInput = midi.inputs.get(midiSelect.value);
-                    if (currentInput) { currentInput.onmidimessage = onMidiMessage; display.innerText = "READY"; setTimeout(toggleSettings, 800); }
+                    if (currentInput) { 
+                        currentInput.onmidimessage = onMidiMessage; 
+                        display.innerText = "READY"; 
+                        setTimeout(() => { if (pressedNotes.size === 0) display.innerText = ""; toggleSettings(); }, 1200); 
+                    }
                 };
             } catch (err) { alert("MIDI Access Refused"); }
         }
@@ -270,23 +289,13 @@
         bgColorInput.oninput = () => document.documentElement.style.setProperty('--bg-color', bgColorInput.value);
         fgColorInput.oninput = () => {
             document.documentElement.style.setProperty('--fg-color', fgColorInput.value);
-            saveToLocal();
         };
-        visColorInput.oninput = () => saveToLocal();
         
         glowNoteCheck.onchange = () => display.classList.toggle('glow', glowNoteCheck.checked);
-        showNoteCheck.onchange = () => { if(!showNoteCheck.checked) display.innerText = ""; };
+        showNoteCheck.onchange = updateDisplay;
 
         initBtn.onclick = initMIDI;
         buildKeyboard();
-
-        function saveToLocal() {
-            localStorage.setItem('nnSettings', JSON.stringify({
-                fg: fgColorInput.value,
-                vis: visColorInput.value,
-                bg: bgColorInput.value
-            }));
-        }
     </script>
 </body>
 </html>
