@@ -3,138 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neural Notes - Sargam MIDI Monitor</title>
+    <title>Neural Notes - Advanced Sargam Monitor</title>
     <style>
         :root { --bg-color: #0b0b0b; --fg-color: #00ffcc; }
         body { 
-            font-family: 'Segoe UI', sans-serif; 
-            text-align: center; 
-            background: var(--bg-color); 
-            color: #fff; 
-            margin: 0; 
-            overflow: hidden; 
-            height: 100vh; 
-            display: flex; 
-            flex-direction: column; 
-            transition: background 0.3s ease;
+            font-family: 'Segoe UI', sans-serif; text-align: center; 
+            background: var(--bg-color); color: #fff; margin: 0; 
+            overflow: hidden; height: 100vh; display: flex; transition: background 0.3s ease;
         }
         
-        /* The Fix: Canvas container allows clicks to pass through */
-        #canvas-container { 
-            position: absolute; 
-            top: 0; left: 0; 
-            width: 100%; height: 100%; 
-            z-index: 1; 
-            pointer-events: none; 
-        }
-        canvas { display: block; }
-
-        /* UI Layer stays above but only traps clicks on interactive elements */
+        #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+        
         #ui-layer { 
-            position: relative; 
-            z-index: 10; 
-            padding: 20px; 
-            pointer-events: none; 
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            position: relative; z-index: 10; width: 100%; height: 100%;
+            pointer-events: none; display: flex; justify-content: space-between; align-items: center; padding: 20px; box-sizing: border-box;
         }
 
         .interactive { pointer-events: auto !important; }
 
+        #display-container { flex-grow: 1; display: flex; flex-direction: column; align-items: center; }
         #display { 
-            font-size: 8rem; 
-            margin-top: 20px; 
-            font-weight: bold; 
-            color: var(--fg-color); 
-            text-shadow: 0 0 20px var(--fg-color); 
+            font-size: 10rem; font-weight: bold; color: var(--fg-color); 
+            text-shadow: 0 0 30px var(--fg-color); line-height: 1;
         }
         
-        #status-bar { font-size: 1rem; color: #aaa; margin-bottom: 15px; font-weight: 600; }
-
+        /* Settings Box - Moved to Right */
         .settings-container { 
-            background: rgba(40, 40, 40, 0.8); 
-            backdrop-filter: blur(10px); 
-            border: 1px solid rgba(255,255,255,0.1); 
-            border-radius: 8px; 
-            text-align: left; 
-            width: 320px; 
-            color: #fff;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            background: rgba(20, 20, 20, 0.85); backdrop-filter: blur(15px); 
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; 
+            text-align: left; width: 300px; color: #fff; pointer-events: auto;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.5); align-self: flex-start;
         }
         
-        .settings-header { 
-            padding: 10px 15px; 
-            cursor: pointer; 
-            display: flex; 
-            justify-content: space-between; 
-            background: rgba(255,255,255,0.05);
-            border-radius: 8px 8px 0 0;
-        }
-        
-        .settings-content { padding: 15px; }
-        .settings-container.minimized .settings-content { display: none; }
-        .settings-container.minimized { width: 150px; }
+        .settings-header { padding: 12px 15px; cursor: pointer; display: flex; justify-content: space-between; background: rgba(255,255,255,0.05); }
+        .settings-content { padding: 15px; max-height: 80vh; overflow-y: auto; }
+        .settings-container.minimized { width: 60px; height: 40px; overflow: hidden; }
 
-        .control-group { margin: 10px 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-        select, button, input { 
-            background: #111; 
-            color: #fff; 
-            border: 1px solid #444; 
-            padding: 6px; 
-            border-radius: 4px; 
-            cursor: pointer;
-        }
-        #initBtn { background: #27ae60; width: 100%; font-weight: bold; border: none; padding: 10px; margin-bottom: 10px; }
-        #initBtn:disabled { background: #555; }
+        .control-group { margin: 12px 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 0.9rem; }
+        select, button, input { background: #111; color: #fff; border: 1px solid #444; padding: 5px; border-radius: 4px; }
+        #initBtn { background: #27ae60; width: 100%; font-weight: bold; border: none; padding: 10px; margin-bottom: 10px; cursor: pointer; }
 
         #keyboard { 
-            display: flex; 
-            justify-content: center; 
-            position: absolute; 
-            bottom: 0; 
-            width: 100%; 
-            z-index: 20; 
-            background: rgba(0,0,0,0.8); 
-            padding: 20px 0; 
-            pointer-events: auto;
+            display: flex; justify-content: center; position: absolute; bottom: 0; 
+            width: 100%; z-index: 20; background: rgba(0,0,0,0.9); padding: 25px 0; pointer-events: auto;
         }
         
         .key { 
-            border: 1px solid #333; 
-            height: 140px; 
-            width: 42px; 
-            background: #eee; 
-            flex-shrink: 0; 
-            border-radius: 0 0 4px 4px; 
-            display: flex; 
-            align-items: flex-end; 
-            justify-content: center; 
-            padding-bottom: 10px; 
-            font-size: 0.75rem; 
-            color: #333; 
-            font-weight: bold;
-            transition: transform 0.1s, background 0.1s;
+            border: 1px solid #333; height: 130px; width: 40px; background: #eee; 
+            flex-shrink: 0; border-radius: 0 0 4px 4px; display: flex; 
+            align-items: flex-end; justify-content: center; padding-bottom: 8px; 
+            font-size: 0.7rem; color: #333; font-weight: bold; position: relative;
         }
         
-        .key.black { 
-            background: #222; 
-            height: 90px; 
-            width: 30px; 
-            margin-left: -15px; 
-            margin-right: -15px; 
-            z-index: 21; 
-            color: #fff; 
-            font-size: 0.65rem;
-        }
-        
-        .key.active { 
-            background: var(--fg-color) !important; 
-            color: #000; 
-            transform: translateY(4px); 
-            box-shadow: 0 0 15px var(--fg-color);
-        }
+        .key.black { background: #222; height: 80px; width: 28px; margin-left: -14px; margin-right: -14px; z-index: 21; color: #fff; }
+        .key.active { background: var(--fg-color) !important; color: #000; box-shadow: 0 0 20px var(--fg-color); }
     </style>
 </head>
 <body>
@@ -142,21 +64,32 @@
     <div id="canvas-container"><canvas id="visualizer"></canvas></div>
 
     <div id="ui-layer">
+        <div id="display-container">
+            <div id="display">READY</div>
+            <div id="status-bar" style="color:#666; margin-top:10px;">Transpose Active</div>
+        </div>
+
         <div class="settings-container interactive" id="settingsBox">
             <div class="settings-header" onclick="toggleSettings()">
                 <span>Settings</span><span id="toggleIcon">−</span>
             </div>
             <div class="settings-content">
-                <button id="initBtn" class="interactive">Initialize MIDI</button>
-                <div class="control-group"><label>Device:</label><select id="midiIn" class="interactive"></select></div>
-                <div class="control-group"><label>Transpose:</label><select id="transpose" class="interactive"></select></div>
-                <div class="control-group"><label>Background:</label><input type="color" id="bgColor" class="interactive" value="#0b0b0b"></div>
-                <div class="control-group"><label>Swar Color:</label><input type="color" id="fgColor" class="interactive" value="#00ffcc"></div>
+                <button id="initBtn">Initialize MIDI</button>
+                <div class="control-group"><label>Device:</label><select id="midiIn"></select></div>
+                <div class="control-group"><label>Transpose:</label><select id="transpose"></select></div>
+                <div class="control-group"><label>Background:</label><input type="color" id="bgColor" value="#0b0b0b"></div>
+                <div class="control-group"><label>Swar Color:</label><input type="color" id="fgColor" value="#00ffcc"></div>
+                <hr style="border:0; border-top:1px solid #444; margin:15px 0;">
+                <div class="control-group">
+                    <label>Show Bars:</label>
+                    <input type="checkbox" id="showBars" checked>
+                </div>
+                <div class="control-group">
+                    <label>Show Particles:</label>
+                    <input type="checkbox" id="showParticles" checked>
+                </div>
             </div>
         </div>
-
-        <div id="status-bar">Transpose: 0</div>
-        <div id="display">READY</div>
     </div>
 
     <div id="keyboard"></div>
@@ -171,32 +104,28 @@
         const initBtn = document.getElementById('initBtn');
         const bgColorInput = document.getElementById('bgColor');
         const fgColorInput = document.getElementById('fgColor');
-        const statusBar = document.getElementById('status-bar');
+        const showBars = document.getElementById('showBars');
+        const showParticles = document.getElementById('showParticles');
         const display = document.getElementById('display');
-        const settingsBox = document.getElementById('settingsBox');
-        const toggleIcon = document.getElementById('toggleIcon');
 
         const startNote = 48; 
         const totalNotes = 37; 
         const keys = {};
-        let currentInput = null;
+        let activeNotes = new Map(); // Tracks held notes for bars
         let particles = [];
-        let bars = [];
+        let completedBars = [];
 
-        // --- Visuals Logic ---
-        function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
+        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
         window.addEventListener('resize', resize);
         resize();
 
+        // --- Visual Classes ---
         class Particle {
             constructor(x, y, color) {
                 this.x = x; this.y = y;
                 this.size = Math.random() * 3 + 1;
                 this.speedX = (Math.random() - 0.5) * 6;
-                this.speedY = (Math.random() * -4) - 2;
+                this.speedY = (Math.random() * -3) - 1;
                 this.color = color;
                 this.life = 1.0;
             }
@@ -211,122 +140,134 @@
         class NoteBar {
             constructor(x, width, color) {
                 this.x = x; this.width = width;
-                this.y = canvas.height - 180;
+                this.startY = canvas.height - 180;
+                this.endY = canvas.height - 180;
                 this.color = color;
-                this.alpha = 0.5;
+                this.active = true;
+                this.alpha = 0.6;
             }
-            update() { this.y -= 5; this.alpha -= 0.005; }
+            update() {
+                if (this.active) {
+                    this.endY -= 8; // Growth speed
+                } else {
+                    this.startY -= 8;
+                    this.endY -= 8;
+                    this.alpha -= 0.01;
+                }
+            }
             draw() {
                 ctx.globalAlpha = this.alpha;
                 ctx.fillStyle = this.color;
-                ctx.fillRect(this.x, this.y, this.width, 100);
+                ctx.fillRect(this.x, this.endY, this.width, this.startY - this.endY);
             }
         }
 
         function animate() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            bars.forEach((b, i) => { b.update(); b.draw(); if(b.alpha <= 0) bars.splice(i, 1); });
-            particles.forEach((p, i) => { p.update(); p.draw(); if(p.life <= 0) particles.splice(i, 1); });
+            
+            if (showBars.checked) {
+                activeNotes.forEach(bar => { bar.update(); bar.draw(); });
+                completedBars.forEach((bar, i) => { 
+                    bar.update(); bar.draw(); 
+                    if (bar.alpha <= 0 || bar.startY < 0) completedBars.splice(i, 1);
+                });
+            }
+
+            if (showParticles.checked) {
+                particles.forEach((p, i) => { p.update(); p.draw(); if(p.life <= 0) particles.splice(i, 1); });
+            }
             requestAnimationFrame(animate);
         }
         animate();
 
-        // --- Core Logic ---
-        function saveSettings() {
-            localStorage.setItem('sargamSettings', JSON.stringify({
-                transpose: transposeSelect.value,
-                bg: bgColorInput.value,
-                fg: fgColorInput.value
-            }));
-        }
-
-        function loadSettings() {
-            const saved = JSON.parse(localStorage.getItem('sargamSettings') || '{}');
-            if(saved.transpose) transposeSelect.value = saved.transpose;
-            if(saved.bg) bgColorInput.value = saved.bg;
-            if(saved.fg) fgColorInput.value = saved.fg;
-            applyStyles();
-        }
-
-        function applyStyles() {
-            document.documentElement.style.setProperty('--bg-color', bgColorInput.value);
-            document.documentElement.style.setProperty('--fg-color', fgColorInput.value);
-            statusBar.innerText = `Transpose: ${transposeSelect.value}`;
-            buildKeyboard();
-        }
-
-        function toggleSettings() {
-            settingsBox.classList.toggle('minimized');
-            toggleIcon.innerText = settingsBox.classList.contains('minimized') ? "+" : "−";
-        }
-
-        function buildKeyboard() {
-            keyboard.innerHTML = '';
+        // --- Core Functions ---
+        function getSwarWithSaptak(midiNote) {
             const trans = parseInt(transposeSelect.value) || 0;
-            for (let i = 0; i < totalNotes; i++) {
-                const midiNote = startNote + i;
-                const isBlack = [1, 3, 6, 8, 10].includes(midiNote % 12);
-                const swar = sargamNotes[((midiNote + trans) % 12 + 12) % 12];
-                
-                const div = document.createElement('div');
-                div.className = `key ${isBlack ? 'black' : 'white'}`;
-                div.innerText = swar;
-                keyboard.appendChild(div);
-                keys[midiNote] = div;
-            }
+            const adjustedNote = midiNote + trans;
+            const baseIndex = (adjustedNote % 12 + 12) % 12;
+            let swar = sargamNotes[baseIndex];
+
+            // Mandra Saptak (Notes below middle C equivalent)
+            if (adjustedNote < 60) return swar + "\u0323"; 
+            // Tar Saptak (Notes above middle B equivalent)
+            if (adjustedNote >= 72) return "\u0307" + swar;
+            
+            return swar;
         }
 
         function handleMIDI(msg) {
             const [cmd, note, vel] = msg.data;
             const type = cmd & 0xf0;
-            const transNote = note + parseInt(transposeSelect.value);
 
             if (type === 144 && vel > 0) {
-                display.innerText = sargamNotes[(transNote % 12 + 12) % 12];
+                display.innerText = getSwarWithSaptak(note);
                 if (keys[note]) {
                     keys[note].classList.add('active');
                     const r = keys[note].getBoundingClientRect();
-                    bars.push(new NoteBar(r.left, r.width, fgColorInput.value));
-                    for(let i=0; i<8; i++) particles.push(new Particle(r.left + r.width/2, r.top, fgColorInput.value));
+                    // Start a new growing bar
+                    activeNotes.set(note, new NoteBar(r.left, r.width, fgColorInput.value));
+                    // Particles burst
+                    if (showParticles.checked) {
+                        for(let i=0; i<10; i++) particles.push(new Particle(r.left + r.width/2, r.top, fgColorInput.value));
+                    }
                 }
             } else if (type === 128 || (type === 144 && vel === 0)) {
-                if (keys[note]) keys[note].classList.remove('active');
+                if (keys[note]) {
+                    keys[note].classList.remove('active');
+                    const bar = activeNotes.get(note);
+                    if (bar) {
+                        bar.active = false;
+                        completedBars.push(bar);
+                        activeNotes.delete(note);
+                    }
+                }
+            }
+        }
+
+        // Previous settings/keyboard building logic remains similar but updated for UI
+        function toggleSettings() {
+            const box = document.getElementById('settingsBox');
+            box.classList.toggle('minimized');
+            document.getElementById('toggleIcon').innerText = box.classList.contains('minimized') ? "+" : "−";
+        }
+
+        function buildKeyboard() {
+            keyboard.innerHTML = '';
+            for (let i = 0; i < totalNotes; i++) {
+                const midiNote = startNote + i;
+                const isBlack = [1, 3, 6, 8, 10].includes(midiNote % 12);
+                const div = document.createElement('div');
+                div.className = `key ${isBlack ? 'black' : 'white'}`;
+                div.innerText = getSwarWithSaptak(midiNote);
+                keyboard.appendChild(div);
+                keys[midiNote] = div;
             }
         }
 
         async function initMIDI() {
             const access = await navigator.requestMIDIAccess();
-            initBtn.innerText = "Connected";
-            initBtn.disabled = true;
-            
+            initBtn.innerText = "MIDI Live";
             const refresh = () => {
-                midiSelect.innerHTML = '<option>Select Device</option>';
+                midiSelect.innerHTML = '<option>Device List</option>';
                 for (let input of access.inputs.values()) {
-                    let opt = new Option(input.name, input.id);
-                    midiSelect.add(opt);
+                    midiSelect.add(new Option(input.name, input.id));
                 }
             };
-            access.onstatechange = refresh; refresh();
-
+            refresh();
             midiSelect.onchange = () => {
                 if (currentInput) currentInput.onmidimessage = null;
                 currentInput = access.inputs.get(midiSelect.value);
-                if (currentInput) {
-                    currentInput.onmidimessage = handleMIDI;
-                    display.innerText = "GO!";
-                    setTimeout(toggleSettings, 800);
-                }
+                if (currentInput) currentInput.onmidimessage = handleMIDI;
             };
         }
 
-        // --- Initialization ---
-        for(let i=-12; i<=12; i++) transposeSelect.add(new Option(i === 0 ? "0 (C=Sa)" : i, i));
-        transposeSelect.onchange = () => { applyStyles(); saveSettings(); };
-        bgColorInput.oninput = () => { applyStyles(); saveSettings(); };
-        fgColorInput.oninput = () => { applyStyles(); saveSettings(); };
+        // Init
+        for(let i=-12; i<=12; i++) transposeSelect.add(new Option(i, i));
+        transposeSelect.onchange = buildKeyboard;
+        bgColorInput.oninput = () => document.documentElement.style.setProperty('--bg-color', bgColorInput.value);
+        fgColorInput.oninput = () => document.documentElement.style.setProperty('--fg-color', fgColorInput.value);
         initBtn.onclick = initMIDI;
-
-        loadSettings();
+        buildKeyboard();
     </script>
 </body>
 </html>
