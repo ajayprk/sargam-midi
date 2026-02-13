@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neural Notes Unlimited - Sargam MIDI</title>
+    <title>Neural Notes Unlimited - Match Mode</title>
     <style>
         :root { --bg-color: #0b0b0b; --fg-color: #00ffcc; --vis-color: #00ffcc; }
         body { 
@@ -13,8 +13,8 @@
         }
         
         #header-title { 
-            position: absolute; top: 20px; width: 100%; z-index: 15;
-            font-size: 1.5rem; font-weight: bold; color: var(--fg-color);
+            position: absolute; top: 15px; width: 100%; z-index: 15;
+            font-size: 1.2rem; font-weight: bold; color: var(--fg-color);
             letter-spacing: 2px; text-transform: uppercase; pointer-events: none;
         }
 
@@ -28,137 +28,102 @@
 
         .interactive { pointer-events: auto !important; }
 
-        /* Alankar Visualizer Overlay */
+        /* Updated Alankar Overlay with Dynamic Scaling */
         #alankar-overlay {
-            position: absolute; top: 80px; width: 80%; height: 150px;
-            display: flex; justify-content: center; align-items: flex-end; gap: 15px;
-            pointer-events: none; z-index: 12;
+            position: absolute; top: 60px; width: 90%; max-width: 1400px; height: 180px;
+            display: flex; justify-content: center; align-items: flex-end; 
+            pointer-events: none; z-index: 12; overflow: hidden;
         }
         .alankar-note {
-            font-size: 1.2rem; font-weight: bold; color: var(--fg-color);
-            opacity: 0.6; position: relative; transition: all 0.3s ease;
+            flex: 1 1 auto; min-width: 5px; text-align: center;
+            font-size: clamp(0.6rem, 2vw, 1.4rem); font-weight: bold; 
+            color: #555; position: relative; transition: all 0.2s ease;
         }
+        .alankar-note.matched { color: var(--fg-color); opacity: 1; text-shadow: 0 0 10px var(--fg-color); transform: scale(1.2); }
+        .alankar-note.next { border-bottom: 2px solid var(--fg-color); color: #aaa; }
 
         #display-container { 
-            flex-grow: 1; width: 100%; max-width: 1400px;
-            display: flex; flex-direction: column; justify-content: center; align-items: center; 
+            flex-grow: 1; width: 100%; display: flex; justify-content: center; align-items: center; 
         }
-        #display { 
-            font-size: 10rem; font-weight: bold; color: var(--fg-color); 
-            line-height: 1; white-space: nowrap; transition: opacity 0.05s;
-        }
+        #display { font-size: 10rem; font-weight: bold; color: var(--fg-color); line-height: 1; }
         .glow { text-shadow: 0 0 30px var(--fg-color); }
         
         .settings-container { 
-            position: absolute; right: 20px; top: 60px;
+            position: absolute; right: 20px; top: 50px;
             background: rgba(20, 20, 20, 0.9); backdrop-filter: blur(15px); 
             border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; 
-            text-align: left; width: 280px; color: #fff; pointer-events: auto;
-            box-shadow: -10px 0 30px rgba(0,0,0,0.5); z-index: 100;
+            text-align: left; width: 280px; color: #fff; pointer-events: auto; z-index: 100;
         }
-        
-        .settings-header { padding: 12px 15px; cursor: pointer; display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .settings-content { padding: 15px; max-height: 70vh; overflow-y: auto; }
-        .settings-container.minimized .settings-content { display: none; }
-        .settings-container.minimized { width: 100px; height: 45px; }
+        .settings-header { padding: 10px 15px; cursor: pointer; display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .settings-content { padding: 12px; max-height: 70vh; overflow-y: auto; }
+        .settings-container.minimized { width: 100px; height: 40px; }
 
-        .control-group { margin: 10px 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 0.8rem; }
-        select, button, input { background: #111; color: #fff; border: 1px solid #444; padding: 4px; border-radius: 4px; }
-        #initBtn, .action-btn { background: #27ae60; width: 100%; font-weight: bold; border: none; padding: 10px; cursor: pointer; margin-bottom: 10px; color: white; }
-        .action-btn { background: #2980b9; margin-top: 5px; }
+        .control-group { margin: 8px 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 0.8rem; }
+        input[type="text"] { background: #000; color: var(--fg-color); border: 1px solid var(--fg-color); padding: 8px; font-family: monospace; }
+        #initBtn, .action-btn { background: #27ae60; width: 100%; font-weight: bold; border: none; padding: 10px; cursor: pointer; margin-bottom: 5px; color: white; border-radius: 4px; }
 
-        #keyboard { 
-            display: flex; justify-content: center; position: absolute; bottom: 0; 
-            width: 100%; z-index: 20; background: rgba(0,0,0,0.9); padding: 25px 0; pointer-events: auto;
-        }
-        
-        .key { 
-            border: 1px solid #333; height: 110px; width: 36px; background: #eee; 
-            flex-shrink: 0; border-radius: 0 0 4px 4px; display: flex; 
-            align-items: flex-end; justify-content: center; padding-bottom: 8px; 
-            font-size: 0.65rem; color: #333; font-weight: bold; position: relative;
-        }
-        .key.black { background: #222; height: 70px; width: 24px; margin-left: -12px; margin-right: -12px; z-index: 21; color: #fff; }
+        #keyboard { display: flex; justify-content: center; position: absolute; bottom: 0; width: 100%; z-index: 20; background: rgba(0,0,0,0.9); padding: 25px 0; pointer-events: auto; }
+        .key { border: 1px solid #333; height: 100px; width: 34px; background: #eee; flex-shrink: 1; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 8px; font-size: 0.6rem; color: #333; font-weight: bold; }
+        .key.black { background: #222; height: 60px; width: 22px; margin-left: -11px; margin-right: -11px; z-index: 21; color: #fff; }
         .key.active { background: var(--fg-color) !important; color: #000; box-shadow: 0 0 15px var(--fg-color); }
     </style>
 </head>
 <body>
 
     <div id="header-title">Neural Notes Unlimited</div>
-    
     <div id="alankar-overlay"></div>
-
     <div id="canvas-container"><canvas id="visualizer"></canvas></div>
 
     <div id="ui-layer">
-        <div id="display-container">
-            <div id="display" class="glow"></div>
-        </div>
+        <div id="display-container"><div id="display" class="glow"></div></div>
 
         <div class="settings-container interactive" id="settingsBox">
-            <div class="settings-header" onclick="toggleSettings()">
-                <span>Settings</span><span id="toggleIcon">−</span>
-            </div>
+            <div class="settings-header" onclick="toggleSettings()"><span>Settings</span><span id="toggleIcon">−</span></div>
             <div class="settings-content">
                 <button id="initBtn">Init MIDI</button>
-                <div class="control-group"><label>Device:</label><select id="midiIn" style="width: 140px;"></select></div>
                 <div class="control-group"><label>Transpose:</label><select id="transpose"></select></div>
-                <div class="control-group"><label>BG Color:</label><input type="color" id="bgColor" value="#0b0b0b"></div>
                 <div class="control-group"><label>Swar Color:</label><input type="color" id="fgColor" value="#00ffcc"></div>
-                <div class="control-group"><label>Vis Color:</label><input type="color" id="visColor" value="#00ffcc"></div>
                 <hr style="border:0; border-top:1px solid #444; margin:10px 0;">
                 
-                <button class="action-btn" onclick="toggleAlankarInput()">Define Alankar</button>
-                <div id="alankar-input-group" style="display:none; margin-bottom: 15px;">
-                    <input type="text" id="alankarInput" placeholder="Sa,Re,Ga,ma..." style="width: 100%; box-sizing: border-box; margin-bottom: 5px;">
-                    <button class="action-btn" style="background:#8e44ad;" onclick="parseAlankar()">Apply Alankar</button>
+                <button class="action-btn" style="background:#2980b9;" onclick="toggleAlankarInput()">Practice Alankar</button>
+                <div id="alankar-input-group" style="display:none;">
+                    <input type="text" id="alankarInput" placeholder="Sa,Re,Ga..." style="width: 100%; margin-bottom: 5px;">
+                    <button class="action-btn" style="background:#8e44ad;" onclick="parseAlankar()">Load & Reset</button>
                 </div>
 
                 <div class="control-group"><label>Show Notes:</label><input type="checkbox" id="showNote" checked></div>
-                <div class="control-group"><label>Note Glow:</label><input type="checkbox" id="glowNote" checked></div>
-                <div class="control-group"><label>Show Bars:</label><input type="checkbox" id="showBars" checked></div>
-                <div class="control-group"><label>Particles:</label><input type="checkbox" id="showParticles" checked></div>
+                <div class="control-group"><label>Bars:</label><input type="checkbox" id="showBars" checked></div>
             </div>
         </div>
     </div>
-
     <div id="keyboard"></div>
 
     <script>
         const sargamNotes = ["Sa", "re", "Re", "ga", "Ga", "ma", "Ma", "Pa", "dha", "Dha", "ni", "Ni"];
-        // For height mapping: lower notes at bottom, higher at top
         const noteRank = {"Sa":0, "re":1, "Re":2, "ga":3, "Ga":4, "ma":5, "Ma":6, "Pa":7, "dha":8, "Dha":9, "ni":10, "Ni":11};
         
         const canvas = document.getElementById('visualizer');
         const ctx = canvas.getContext('2d');
         const keyboard = document.getElementById('keyboard');
         const transposeSelect = document.getElementById('transpose');
-        const midiSelect = document.getElementById('midiIn');
-        const initBtn = document.getElementById('initBtn');
-        const bgColorInput = document.getElementById('bgColor');
         const fgColorInput = document.getElementById('fgColor');
-        const visColorInput = document.getElementById('visColor');
-        const showNoteCheck = document.getElementById('showNote');
-        const glowNoteCheck = document.getElementById('glowNote');
-        const showBars = document.getElementById('showBars');
-        const showParticles = document.getElementById('showParticles');
         const display = document.getElementById('display');
         const alankarOverlay = document.getElementById('alankar-overlay');
 
-        const startNote = 48; 
-        const totalNotes = 37; 
-        const keys = {};
         let pressedNotes = new Set();
-        let activeBars = new Map(); 
+        let activeBars = new Map();
         let particles = [];
         let completedBars = [];
         let currentInput = null;
+
+        // --- Match Mode State ---
+        let alankarSequence = []; // Stores objects {swar: "Sa", full: ".Sa", matched: false}
+        let currentMatchIndex = 0;
 
         function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
         window.addEventListener('resize', resize);
         resize();
 
-        // --- Alankar Functionality ---
         function toggleAlankarInput() {
             const group = document.getElementById('alankar-input-group');
             group.style.display = group.style.display === 'none' ? 'block' : 'none';
@@ -166,83 +131,58 @@
 
         function parseAlankar() {
             const input = document.getElementById('alankarInput').value;
-            const swaras = input.split(',').map(s => s.trim());
+            const swaras = input.split(',').map(s => s.trim()).filter(s => s !== "");
+            alankarSequence = [];
+            currentMatchIndex = 0;
             alankarOverlay.innerHTML = '';
             
-            swaras.forEach(raw => {
+            swaras.forEach((raw, idx) => {
                 let swar = raw.replace('.', '');
                 let rank = noteRank[swar] || 0;
-                let offset = 0;
-
-                // Adjust rank based on saptak dots for vertical height
-                if (raw.startsWith('.')) { rank -= 12; offset = -1; } // Mandra
-                if (raw.endsWith('.')) { rank += 12; offset = 1; }  // Tar
+                if (raw.startsWith('.')) rank -= 12;
+                if (raw.endsWith('.')) rank += 12;
 
                 const noteDiv = document.createElement('div');
-                noteDiv.className = 'alankar-note';
+                noteDiv.className = 'alankar-note' + (idx === 0 ? ' next' : '');
                 
-                // Visual formatting for dots
                 let displaySwar = swar;
-                if (offset === -1) displaySwar = swar + "\u0323";
-                if (offset === 1) displaySwar = "\u0307" + swar;
-                
+                if (raw.startsWith('.')) displaySwar = swar + "\u0323";
+                if (raw.endsWith('.')) displaySwar = "\u0307" + swar;
                 noteDiv.innerText = displaySwar;
                 
-                // Map the rank to vertical position (0 to 120px)
                 const bottomPos = ((rank + 12) / 36) * 150;
                 noteDiv.style.bottom = bottomPos + 'px';
                 
                 alankarOverlay.appendChild(noteDiv);
+                alankarSequence.push({ swar: displaySwar, el: noteDiv });
             });
         }
 
-        // --- Visual Classes ---
-        class Particle {
-            constructor(x, y, color) {
-                this.x = x; this.y = y;
-                this.size = Math.random() * 3 + 1;
-                this.vx = (Math.random() - 0.5) * 6;
-                this.vy = (Math.random() * -3) - 1;
-                this.color = color;
-                this.life = 1.0;
-            }
-            update() { this.x += this.vx; this.y += this.vy; this.life -= 0.02; }
-            draw() {
-                ctx.globalAlpha = this.life;
-                ctx.fillStyle = this.color;
-                ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
+        function checkMatch(playedSwar) {
+            if (alankarSequence.length === 0 || currentMatchIndex >= alankarSequence.length) return;
+
+            let target = alankarSequence[currentMatchIndex];
+            if (playedSwar === target.swar) {
+                target.el.classList.remove('next');
+                target.el.classList.add('matched');
+                currentMatchIndex++;
+                if (alankarSequence[currentMatchIndex]) {
+                    alankarSequence[currentMatchIndex].el.classList.add('next');
+                }
             }
         }
 
+        // --- Visualizer Classes ---
         class NoteBar {
-            constructor(x, width, color) {
-                this.x = x; this.width = width;
-                this.startY = canvas.height - 180;
-                this.currY = canvas.height - 180;
-                this.color = color;
-                this.active = true;
-                this.alpha = 0.6;
-            }
-            update() {
-                if (this.active) { this.currY -= 8; } 
-                else { this.startY -= 8; this.currY -= 8; this.alpha -= 0.01; }
-            }
-            draw() {
-                ctx.globalAlpha = this.alpha;
-                ctx.fillStyle = this.color;
-                ctx.fillRect(this.x, this.currY, this.width, this.startY - this.currY);
-            }
+            constructor(x, width, color) { this.x = x; this.width = width; this.startY = canvas.height - 180; this.currY = canvas.height - 180; this.color = color; this.active = true; this.alpha = 0.6; }
+            update() { if (this.active) this.currY -= 8; else { this.startY -= 8; this.currY -= 8; this.alpha -= 0.01; } }
+            draw() { ctx.globalAlpha = this.alpha; ctx.fillStyle = this.color; ctx.fillRect(this.x, this.currY, this.width, this.startY - this.currY); }
         }
 
         function animate() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            if (showBars.checked) {
-                activeBars.forEach(bar => { bar.update(); bar.draw(); });
-                completedBars.forEach((bar, i) => { bar.update(); bar.draw(); if (bar.alpha <= 0 || bar.startY < 0) completedBars.splice(i, 1); });
-            }
-            if (showParticles.checked) {
-                particles.forEach((p, i) => { p.update(); p.draw(); if(p.life <= 0) particles.splice(i, 1); });
-            }
+            activeBars.forEach(bar => { bar.update(); bar.draw(); });
+            completedBars.forEach((bar, i) => { bar.update(); bar.draw(); if (bar.alpha <= 0) completedBars.splice(i, 1); });
             requestAnimationFrame(animate);
         }
         animate();
@@ -257,55 +197,36 @@
             return swar;
         }
 
-        function updateDisplay() {
-            if (!showNoteCheck.checked || pressedNotes.size === 0) {
-                display.innerText = "";
-                return;
-            }
-            const sortedNotes = Array.from(pressedNotes).sort((a, b) => a - b);
-            const swarArray = sortedNotes.map(n => getSwarLabel(n));
-            display.innerText = swarArray.join("   ");
-            let baseSize = 10;
-            if (swarArray.length > 3) baseSize = 7;
-            if (swarArray.length > 5) baseSize = 5;
-            display.style.fontSize = baseSize + "rem";
-        }
-
         function onMidiMessage(event) {
             const [status, note, velocity] = event.data;
             const type = status & 0xf0;
 
             if (type === 0x90 && velocity > 0) { 
                 pressedNotes.add(note);
-                updateDisplay();
+                const swar = getSwarLabel(note);
+                if (document.getElementById('showNote').checked) display.innerText = swar;
+                checkMatch(swar); // Trigger Match Mode
+
                 if (keys[note]) {
                     keys[note].classList.add('active');
-                    const rect = keys[note].getBoundingClientRect();
-                    const vColor = visColorInput.value;
-                    activeBars.set(note, new NoteBar(rect.left, rect.width, vColor));
-                    if (showParticles.checked) for(let i=0; i<8; i++) particles.push(new Particle(rect.left + rect.width/2, rect.top, vColor));
+                    const r = keys[note].getBoundingClientRect();
+                    activeBars.set(note, new NoteBar(r.left, r.width, fgColorInput.value));
                 }
             } else if (type === 0x80 || (type === 0x90 && velocity === 0)) { 
                 pressedNotes.delete(note);
-                updateDisplay();
+                if (pressedNotes.size === 0) display.innerText = "";
                 if (keys[note]) keys[note].classList.remove('active');
                 const bar = activeBars.get(note);
                 if (bar) { bar.active = false; completedBars.push(bar); activeBars.delete(note); }
             }
         }
 
-        function toggleSettings() {
-            settingsBox.classList.toggle('minimized');
-            document.getElementById('toggleIcon').innerText = settingsBox.classList.contains('minimized') ? "+" : "−";
-        }
-
         function buildKeyboard() {
             keyboard.innerHTML = '';
             for (let i = 0; i < totalNotes; i++) {
                 const midi = startNote + i;
-                const isBlack = [1, 3, 6, 8, 10].includes(midi % 12);
                 const div = document.createElement('div');
-                div.className = `key ${isBlack ? 'black' : 'white'}`;
+                div.className = `key ${[1, 3, 6, 8, 10].includes(midi % 12) ? 'black' : 'white'}`;
                 div.innerText = getSwarLabel(midi);
                 keyboard.appendChild(div);
                 keys[midi] = div;
@@ -313,39 +234,19 @@
         }
 
         async function initMIDI() {
-            try {
-                const midi = await navigator.requestMIDIAccess();
-                initBtn.innerText = "MIDI Live";
-                initBtn.style.background = "#555";
-                const updateDevices = () => {
-                    midiSelect.innerHTML = '<option>Device List</option>';
-                    midi.inputs.forEach(input => midiSelect.add(new Option(input.name, input.id)));
-                };
-                updateDevices();
-                midiSelect.onchange = () => {
-                    if (currentInput) currentInput.onmidimessage = null;
-                    currentInput = midi.inputs.get(midiSelect.value);
-                    if (currentInput) { currentInput.onmidimessage = onMidiMessage; display.innerText = "READY"; setTimeout(() => { if (pressedNotes.size === 0) display.innerText = ""; toggleSettings(); }, 1200); }
-                };
-            } catch (err) { alert("MIDI Access Refused"); }
+            const midi = await navigator.requestMIDIAccess();
+            const inputs = Array.from(midi.inputs.values());
+            if (inputs[0]) {
+                inputs[0].onmidimessage = onMidiMessage;
+                display.innerText = "READY";
+            }
         }
 
         // --- Init ---
-        for(let i=-12; i<=12; i++) {
-            let opt = new Option(i === 0 ? "0 (Sa=C)" : i, i);
-            if (i === 0) opt.selected = true;
-            transposeSelect.add(opt);
-        }
-
+        for(let i=-12; i<=12; i++) transposeSelect.add(new Option(i, i));
         transposeSelect.onchange = buildKeyboard;
-        bgColorInput.oninput = () => document.documentElement.style.setProperty('--bg-color', bgColorInput.value);
         fgColorInput.oninput = () => document.documentElement.style.setProperty('--fg-color', fgColorInput.value);
-        visColorInput.oninput = () => document.documentElement.style.setProperty('--vis-color', visColorInput.value);
-        
-        glowNoteCheck.onchange = () => display.classList.toggle('glow', glowNoteCheck.checked);
-        showNoteCheck.onchange = updateDisplay;
-
-        initBtn.onclick = initMIDI;
+        document.getElementById('initBtn').onclick = initMIDI;
         buildKeyboard();
     </script>
 </body>
