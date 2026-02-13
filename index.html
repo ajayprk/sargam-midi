@@ -28,7 +28,17 @@
 
         .interactive { pointer-events: auto !important; }
 
-        /* Centering the Display Container */
+        /* Alankar Visualizer Overlay */
+        #alankar-overlay {
+            position: absolute; top: 80px; width: 80%; height: 150px;
+            display: flex; justify-content: center; align-items: flex-end; gap: 15px;
+            pointer-events: none; z-index: 12;
+        }
+        .alankar-note {
+            font-size: 1.2rem; font-weight: bold; color: var(--fg-color);
+            opacity: 0.6; position: relative; transition: all 0.3s ease;
+        }
+
         #display-container { 
             flex-grow: 1; width: 100%; max-width: 1400px;
             display: flex; flex-direction: column; justify-content: center; align-items: center; 
@@ -54,7 +64,8 @@
 
         .control-group { margin: 10px 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 0.8rem; }
         select, button, input { background: #111; color: #fff; border: 1px solid #444; padding: 4px; border-radius: 4px; }
-        #initBtn { background: #27ae60; width: 100%; font-weight: bold; border: none; padding: 10px; cursor: pointer; margin-bottom: 10px; }
+        #initBtn, .action-btn { background: #27ae60; width: 100%; font-weight: bold; border: none; padding: 10px; cursor: pointer; margin-bottom: 10px; color: white; }
+        .action-btn { background: #2980b9; margin-top: 5px; }
 
         #keyboard { 
             display: flex; justify-content: center; position: absolute; bottom: 0; 
@@ -74,6 +85,9 @@
 <body>
 
     <div id="header-title">Neural Notes Unlimited</div>
+    
+    <div id="alankar-overlay"></div>
+
     <div id="canvas-container"><canvas id="visualizer"></canvas></div>
 
     <div id="ui-layer">
@@ -93,6 +107,13 @@
                 <div class="control-group"><label>Swar Color:</label><input type="color" id="fgColor" value="#00ffcc"></div>
                 <div class="control-group"><label>Vis Color:</label><input type="color" id="visColor" value="#00ffcc"></div>
                 <hr style="border:0; border-top:1px solid #444; margin:10px 0;">
+                
+                <button class="action-btn" onclick="toggleAlankarInput()">Define Alankar</button>
+                <div id="alankar-input-group" style="display:none; margin-bottom: 15px;">
+                    <input type="text" id="alankarInput" placeholder="Sa,Re,Ga,ma..." style="width: 100%; box-sizing: border-box; margin-bottom: 5px;">
+                    <button class="action-btn" style="background:#8e44ad;" onclick="parseAlankar()">Apply Alankar</button>
+                </div>
+
                 <div class="control-group"><label>Show Notes:</label><input type="checkbox" id="showNote" checked></div>
                 <div class="control-group"><label>Note Glow:</label><input type="checkbox" id="glowNote" checked></div>
                 <div class="control-group"><label>Show Bars:</label><input type="checkbox" id="showBars" checked></div>
@@ -105,6 +126,9 @@
 
     <script>
         const sargamNotes = ["Sa", "re", "Re", "ga", "Ga", "ma", "Ma", "Pa", "dha", "Dha", "ni", "Ni"];
+        // For height mapping: lower notes at bottom, higher at top
+        const noteRank = {"Sa":0, "re":1, "Re":2, "ga":3, "Ga":4, "ma":5, "Ma":6, "Pa":7, "dha":8, "Dha":9, "ni":10, "Ni":11};
+        
         const canvas = document.getElementById('visualizer');
         const ctx = canvas.getContext('2d');
         const keyboard = document.getElementById('keyboard');
@@ -119,6 +143,7 @@
         const showBars = document.getElementById('showBars');
         const showParticles = document.getElementById('showParticles');
         const display = document.getElementById('display');
+        const alankarOverlay = document.getElementById('alankar-overlay');
 
         const startNote = 48; 
         const totalNotes = 37; 
@@ -133,6 +158,45 @@
         window.addEventListener('resize', resize);
         resize();
 
+        // --- Alankar Functionality ---
+        function toggleAlankarInput() {
+            const group = document.getElementById('alankar-input-group');
+            group.style.display = group.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function parseAlankar() {
+            const input = document.getElementById('alankarInput').value;
+            const swaras = input.split(',').map(s => s.trim());
+            alankarOverlay.innerHTML = '';
+            
+            swaras.forEach(raw => {
+                let swar = raw.replace('.', '');
+                let rank = noteRank[swar] || 0;
+                let offset = 0;
+
+                // Adjust rank based on saptak dots for vertical height
+                if (raw.startsWith('.')) { rank -= 12; offset = -1; } // Mandra
+                if (raw.endsWith('.')) { rank += 12; offset = 1; }  // Tar
+
+                const noteDiv = document.createElement('div');
+                noteDiv.className = 'alankar-note';
+                
+                // Visual formatting for dots
+                let displaySwar = swar;
+                if (offset === -1) displaySwar = swar + "\u0323";
+                if (offset === 1) displaySwar = "\u0307" + swar;
+                
+                noteDiv.innerText = displaySwar;
+                
+                // Map the rank to vertical position (0 to 120px)
+                const bottomPos = ((rank + 12) / 36) * 150;
+                noteDiv.style.bottom = bottomPos + 'px';
+                
+                alankarOverlay.appendChild(noteDiv);
+            });
+        }
+
+        // --- Visual Classes ---
         class Particle {
             constructor(x, y, color) {
                 this.x = x; this.y = y;
@@ -198,19 +262,12 @@
                 display.innerText = "";
                 return;
             }
-
-            // Sort notes by pitch and map to Swars
             const sortedNotes = Array.from(pressedNotes).sort((a, b) => a - b);
             const swarArray = sortedNotes.map(n => getSwarLabel(n));
-            const swarText = swarArray.join("   ");
-            
-            display.innerText = swarText;
-
-            // Auto-scale Font Size
-            let baseSize = 10; // rem
+            display.innerText = swarArray.join("   ");
+            let baseSize = 10;
             if (swarArray.length > 3) baseSize = 7;
             if (swarArray.length > 5) baseSize = 5;
-            if (swarArray.length > 8) baseSize = 3;
             display.style.fontSize = baseSize + "rem";
         }
 
@@ -232,7 +289,6 @@
                 pressedNotes.delete(note);
                 updateDisplay();
                 if (keys[note]) keys[note].classList.remove('active');
-                
                 const bar = activeBars.get(note);
                 if (bar) { bar.active = false; completedBars.push(bar); activeBars.delete(note); }
             }
@@ -269,11 +325,7 @@
                 midiSelect.onchange = () => {
                     if (currentInput) currentInput.onmidimessage = null;
                     currentInput = midi.inputs.get(midiSelect.value);
-                    if (currentInput) { 
-                        currentInput.onmidimessage = onMidiMessage; 
-                        display.innerText = "READY"; 
-                        setTimeout(() => { if (pressedNotes.size === 0) display.innerText = ""; toggleSettings(); }, 1200); 
-                    }
+                    if (currentInput) { currentInput.onmidimessage = onMidiMessage; display.innerText = "READY"; setTimeout(() => { if (pressedNotes.size === 0) display.innerText = ""; toggleSettings(); }, 1200); }
                 };
             } catch (err) { alert("MIDI Access Refused"); }
         }
@@ -287,9 +339,8 @@
 
         transposeSelect.onchange = buildKeyboard;
         bgColorInput.oninput = () => document.documentElement.style.setProperty('--bg-color', bgColorInput.value);
-        fgColorInput.oninput = () => {
-            document.documentElement.style.setProperty('--fg-color', fgColorInput.value);
-        };
+        fgColorInput.oninput = () => document.documentElement.style.setProperty('--fg-color', fgColorInput.value);
+        visColorInput.oninput = () => document.documentElement.style.setProperty('--vis-color', visColorInput.value);
         
         glowNoteCheck.onchange = () => display.classList.toggle('glow', glowNoteCheck.checked);
         showNoteCheck.onchange = updateDisplay;
