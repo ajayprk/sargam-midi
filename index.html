@@ -6,7 +6,7 @@
     <title>Neural Notes Unlimited</title>
     <style>
         :root { --bg-color: #0b0b0b; --fg-color: #00ffcc; --vis-color: #00ffcc; --alankar-color: #f1c40f; }
-        body { font-family: 'Segoe UI', sans-serif; text-align: center; background: var(--bg-color); color: #fff; margin: 0; overflow: hidden; height: 100vh; display: flex; transition: background 0.3s ease; }
+        body { font-family: 'Segoe UI', sans-serif; text-align: center; background: var(--bg-color); color: #fff; margin: 0; overflow: hidden; height: 100vh; display: flex; transition: background 0.15s ease; }
         
         #header-title { position: absolute; top: 15px; width: 100%; z-index: 10; font-size: 1.2rem; font-weight: bold; color: var(--fg-color); letter-spacing: 2px; text-transform: uppercase; pointer-events: none; }
         #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
@@ -36,7 +36,7 @@
         .action-btn { background: #2980b9; margin-top: 10px; }
 
         #keyboard { display: flex; justify-content: center; position: absolute; bottom: 0; width: 100%; z-index: 400; background: rgba(0,0,0,0.9); padding: 25px 0; pointer-events: auto; }
-        .key { border: 1px solid #333; height: 100px; width: 34px; background: #eee; flex-shrink: 1; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 8px; font-size: 0.6rem; color: #333; font-weight: bold; pointer-events: auto; }
+        .key { border: 1px solid #333; height: 100px; width: 34px; background: #eee; flex-shrink: 1; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 8px; font-size: 0.6rem; color: #333; font-weight: bold; }
         .key.black { background: #222; height: 60px; width: 22px; margin-left: -11px; margin-right: -11px; z-index: 421; color: #fff; }
         .key.active { background: var(--fg-color) !important; color: #000; box-shadow: 0 0 15px var(--fg-color); }
     </style>
@@ -59,19 +59,21 @@
                 <div class="control-group"><label>Swar Color:</label><input type="color" id="fgColor" class="interactive" value="#00ffcc"></div>
                 <div class="control-group"><label>Alankar Color:</label><input type="color" id="alankarColor" class="interactive" value="#f1c40f"></div>
                 
-                <hr style="border:0; border-top:1px solid #444; margin:10px 0;">
+                <hr style="border:0; border-top:1px solid #444; margin:15px 0;">
                 
                 <div class="control-group"><label>Select Alankar:</label>
                     <select id="alankarSelect" class="interactive" onchange="handleAlankarSelection()">
                         <option value="custom">Custom Alankar</option>
                         <optgroup label="Standard Alankars">
                             <option value="Sa,Re,Ga,ma,Pa,Dha,Ni,Sa.">Aroha (Standard)</option>
-                            <option value="Sa,Re,Sa,Re,Ga,Re,Ga,ma,Ga,ma,Pa">Doublets (Hindustani)</option>
-                            <option value="Sa,Re,Ga,Re,Ga,ma,Ga,ma,Pa">Triplets (Hindustani)</option>
+                            <option value="Sa.,Ni,Dha,Pa,ma,Ga,Re,Sa">Avaroha (Standard)</option>
+                            <option value="Sa,Re,Ga, Re,Ga,ma, Ga,ma,Pa, ma,Pa,Dha, Pa,Dha,Ni, Dha,Ni,Sa.">Palta (Triplets)</option>
                         </optgroup>
-                        <optgroup label="Ragas">
+                        <optgroup label="Raga Patterns">
                             <option value="Ni.,Re,Ga,Ma,Pa,Dha,Ni,Sa.">Yaman Aroha</option>
+                            <option value="Sa.,Ni,Dha,Pa,Ma,Ga,Re,Sa">Yaman Avaroha</option>
                             <option value="Sa,re,Ga,ma,Pa,dha,Ni,Sa.">Bhairav Aroha</option>
+                            <option value="Sa.,Ni,dha,Pa,ma,Ga,re,Sa">Bhairav Avaroha</option>
                         </optgroup>
                     </select>
                 </div>
@@ -80,7 +82,7 @@
                 </div>
                 <button class="action-btn" onclick="parseAlankar()">Load Alankar</button>
 
-                <hr style="border:0; border-top:1px solid #444; margin:10px 0;">
+                <hr style="border:0; border-top:1px solid #444; margin:15px 0;">
                 <div class="control-group"><label>Show Notes:</label><input type="checkbox" id="showNote" checked></div>
                 <div class="control-group"><label>Note Glow:</label><input type="checkbox" id="glowNote" checked></div>
                 <div class="control-group"><label>Show Bars:</label><input type="checkbox" id="showBars" checked></div>
@@ -110,6 +112,7 @@
         let alankarSequence = [];
         let currentMatchIndex = 0;
         let midiAccess = null;
+        let keys = {}; // FIXED: Declared once here
 
         function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; buildKeyboard(); }
         window.addEventListener('resize', resize); resize();
@@ -145,6 +148,14 @@
             });
         }
 
+        function triggerFlash() {
+            const originalColor = bgColorInput.value;
+            document.body.style.backgroundColor = "rgba(255, 0, 0, 0.6)";
+            setTimeout(() => {
+                document.body.style.backgroundColor = originalColor;
+            }, 150);
+        }
+
         function checkMatch(playedSwar) {
             if (alankarSequence.length === 0 || currentMatchIndex >= alankarSequence.length) return;
             if (playedSwar === alankarSequence[currentMatchIndex].swar) {
@@ -152,6 +163,8 @@
                 alankarSequence[currentMatchIndex].el.classList.add('matched');
                 currentMatchIndex++;
                 if (alankarSequence[currentMatchIndex]) alankarSequence[currentMatchIndex].el.classList.add('next');
+            } else {
+                triggerFlash();
             }
         }
 
@@ -200,7 +213,7 @@
                 if (keys[note]) {
                     keys[note].classList.add('active');
                     const r = keys[note].getBoundingClientRect();
-                    const vColor = getComputedStyle(document.documentElement).getPropertyValue('--fg-color');
+                    const vColor = fgColorInput.value;
                     activeBars.set(note, new NoteBar(r.left, r.width, vColor));
                     if (document.getElementById('showParticles').checked) for(let i=0; i<8; i++) particles.push(new Particle(r.left + r.width/2, r.top, vColor));
                 }
@@ -229,19 +242,12 @@
             try {
                 midiAccess = await navigator.requestMIDIAccess();
                 const inputs = Array.from(midiAccess.inputs.values());
-                const refresh = () => {
-                    const selector = document.createElement('select'); selector.className = 'interactive';
-                    midiAccess.inputs.forEach(input => selector.add(new Option(input.name, input.id)));
-                    selector.onchange = () => { midiAccess.inputs.get(selector.value).onmidimessage = onMidiMessage; };
-                    if (inputs[0]) inputs[0].onmidimessage = onMidiMessage;
-                    document.getElementById('initBtn').innerText = "MIDI Live";
-                    display.innerText = "READY";
-                };
-                refresh();
+                if (inputs[0]) inputs[0].onmidimessage = onMidiMessage;
+                document.getElementById('initBtn').innerText = "MIDI Live";
+                display.innerText = "READY";
             } catch (err) { alert("Access Denied"); }
         }
 
-        const keys = {};
         for(let i=-12; i<=12; i++) { let opt = new Option(i, i); if (i === 0) opt.selected = true; transposeSelect.add(opt); }
         transposeSelect.onchange = buildKeyboard;
         fgColorInput.oninput = () => document.documentElement.style.setProperty('--fg-color', fgColorInput.value);
