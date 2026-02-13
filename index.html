@@ -15,7 +15,6 @@
         #ui-layer { position: relative; z-index: 100; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; }
         .interactive { pointer-events: auto !important; }
 
-        /* Alankar moved to TOP half and constrained */
         #alankar-wrapper { position: absolute; top: 80px; width: 80%; height: 150px; display: flex; justify-content: center; z-index: 50; transition: opacity 0.3s; }
         #alankar-overlay { display: flex; justify-content: center; align-items: flex-end; width: 100%; height: 100%; }
         .alankar-note { font-weight: bold; color: #444; position: relative; transition: all 0.2s ease; white-space: nowrap; flex: 0 1 auto; }
@@ -56,6 +55,7 @@
             <div class="settings-header" onclick="toggleSettings()"><span>Settings</span><span id="toggleIcon">−</span></div>
             <div class="settings-content">
                 <button id="initBtn" class="interactive">Init MIDI</button>
+                <div class="control-group"><label>MIDI Device:</label><select id="midiIn" class="interactive" style="width:140px;"></select></div>
                 <div class="control-group"><label>Transpose:</label><select id="transpose" class="interactive"></select></div>
                 <div class="control-group"><label>BG Color:</label><input type="color" id="bgColor" class="interactive" value="#0b0b0b"></div>
                 <div class="control-group"><label>Swar Color:</label><input type="color" id="fgColor" class="interactive" value="#00ffcc"></div>
@@ -92,6 +92,7 @@
         const ctx = canvas.getContext('2d');
         const keyboard = document.getElementById('keyboard');
         const transposeSelect = document.getElementById('transpose');
+        const midiSelect = document.getElementById('midiIn');
         const fgColorInput = document.getElementById('fgColor');
         const bgColorInput = document.getElementById('bgColor');
         const alankarColorInput = document.getElementById('alankarColor');
@@ -106,6 +107,7 @@
         let alankarSequence = [];
         let currentMatchIndex = 0;
         let keys = {};
+        let currentMidiInput = null;
 
         function saveToLocal() {
             localStorage.setItem('nnSettings', JSON.stringify({
@@ -167,12 +169,10 @@
             const swaras = input.split(',').map(s => s.trim()).filter(s => s !== "");
             alankarSequence = []; currentMatchIndex = 0; alankarOverlay.innerHTML = '';
             
-            // Dynamic Font Scaling Logic
             const keyboardWidth = keyboard.offsetWidth;
             const noteCount = swaras.length;
             const calculatedSize = Math.min(1.4, (keyboardWidth / noteCount) / 30);
             const calculatedGap = Math.min(10, (keyboardWidth / noteCount) / 4);
-
             alankarOverlay.style.gap = `${calculatedGap}px`;
 
             swaras.forEach((raw, idx) => {
@@ -196,13 +196,14 @@
         }
 
         function triggerFlash() {
+            if (!document.getElementById('showAlankar').checked || alankarSequence.length === 0) return;
             const original = bgColorInput.value;
             document.body.style.backgroundColor = "rgba(255, 0, 0, 0.6)";
             setTimeout(() => { document.body.style.backgroundColor = original; }, 150);
         }
 
         function checkMatch(playedSwar) {
-            if (alankarSequence.length === 0 || currentMatchIndex >= alankarSequence.length) return;
+            if (!document.getElementById('showAlankar').checked || alankarSequence.length === 0 || currentMatchIndex >= alankarSequence.length) return;
             if (playedSwar === alankarSequence[currentMatchIndex].swar) {
                 alankarSequence[currentMatchIndex].el.classList.remove('next');
                 alankarSequence[currentMatchIndex].el.classList.add('matched');
@@ -290,9 +291,27 @@
             try {
                 const midi = await navigator.requestMIDIAccess();
                 const inputs = Array.from(midi.inputs.values());
-                if (inputs[0]) inputs[0].onmidimessage = onMidiMessage;
-                document.getElementById('initBtn').innerText = "MIDI Live";
-                display.innerText = "READY";
+                
+                const updateDevices = () => {
+                    midiSelect.innerHTML = '';
+                    midi.inputs.forEach(input => {
+                        midiSelect.add(new Option(input.name, input.id));
+                    });
+                };
+                updateDevices();
+
+                midiSelect.onchange = () => {
+                    if (currentMidiInput) currentMidiInput.onmidimessage = null;
+                    currentMidiInput = midi.inputs.get(midiSelect.value);
+                    if (currentMidiInput) currentMidiInput.onmidimessage = onMidiMessage;
+                };
+
+                if (inputs[0]) {
+                    midiSelect.value = inputs[0].id;
+                    midiSelect.onchange();
+                    document.getElementById('initBtn').innerText = "MIDI Live";
+                    display.innerText = "READY";
+                }
             } catch (err) { alert("Access Denied"); }
         }
 
