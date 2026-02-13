@@ -7,11 +7,9 @@
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background: #fdfdfd; padding: 20px; color: #333; }
         
-        /* Sargam Display */
         #display { font-size: 7rem; margin: 10px; font-weight: bold; color: #d35400; min-height: 1.5em; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
         #status-bar { font-size: 1rem; color: #7f8c8d; margin-bottom: 20px; font-weight: 600; }
 
-        /* Collapsible Settings Box */
         .settings-container { background: #fff; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: inline-block; margin-bottom: 20px; overflow: hidden; transition: all 0.3s ease; text-align: left; width: 320px; }
         .settings-header { background: #f8f9fa; padding: 10px 15px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; }
         .settings-header h3 { margin: 0; font-size: 1rem; color: #2c3e50; }
@@ -24,7 +22,6 @@
         #initBtn { background-color: #27ae60; color: white; border: none; font-weight: bold; width: 100%; margin-bottom: 10px; }
         label { font-weight: 600; font-size: 0.9rem; }
 
-        /* Keyboard */
         #keyboard { display: flex; justify-content: center; margin-top: 40px; padding-bottom: 50px; overflow-x: auto; }
         .key { border: 1px solid #999; height: 160px; width: 45px; background: white; box-sizing: border-box; flex-shrink: 0; border-radius: 0 0 4px 4px; position: relative; }
         .key.black { background: #222; height: 100px; width: 32px; margin-left: -16px; margin-right: -16px; z-index: 2; border-radius: 0 0 3px 3px; }
@@ -44,12 +41,10 @@
         </div>
         <div class="settings-content">
             <button id="initBtn">1. Initialize MIDI</button>
-            
             <div class="control-group">
                 <label for="midiIn">Device:</label>
                 <select id="midiIn"><option value="">-- Connect MIDI --</option></select>
             </div>
-
             <div class="control-group">
                 <label for="transpose">Transpose (Shift Sa):</label>
                 <select id="transpose" onchange="updateStatusText()"></select>
@@ -62,7 +57,11 @@
     <div id="keyboard"></div>
 
     <script>
-        const sargamNotes = ["Sa", "re", "Re", "ga", "Ga", "Ma", "ma", "Pa", "dha", "Dha", "ni", "Ni"];
+        // Updated Sargam Mapping
+        // Index: 0   1    2    3    4    5    6    7    8    9    10   11
+        // Note:  Sa  re   Re   ga   Ga   Ma   MA   Pa   dha  Dha  ni   Ni
+        const sargamNotes = ["Sa", "re", "Re", "ga", "Ga", "Ma", "MA", "Pa", "dha", "Dha", "ni", "Ni"];
+        
         const transposeSelect = document.getElementById('transpose');
         const midiSelect = document.getElementById('midiIn');
         const initBtn = document.getElementById('initBtn');
@@ -112,16 +111,11 @@
         function handleMidiMessage(message) {
             const [command, rawNote, velocity] = message.data;
             const type = command & 0xf0; 
-            
-            // Apply Transpose directly to the note used for calculation and display
             const transposedNote = rawNote + parseInt(transposeSelect.value);
 
             if (type === 144 && velocity > 0) { 
-                // Always calculate Sargam relative to C (0) after transpose is applied
                 const normalizedNote = (transposedNote % 12 + 12) % 12;
                 display.innerText = sargamNotes[normalizedNote];
-                
-                // Highlight the actual key pressed on the keyboard
                 if (keys[rawNote]) keys[rawNote].classList.add('active');
             } else if (type === 128 || (type === 144 && velocity === 0)) { 
                 if (keys[rawNote]) keys[rawNote].classList.remove('active');
