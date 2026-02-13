@@ -3,15 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neural Notes - Sargam MIDI Monitor</title>
+    <title>Neural Notes Unlimited - Sargam MIDI</title>
     <style>
-        :root { --bg-color: #0b0b0b; --fg-color: #00ffcc; }
+        :root { --bg-color: #0b0b0b; --fg-color: #00ffcc; --vis-color: #00ffcc; }
         body { 
             font-family: 'Segoe UI', sans-serif; text-align: center; 
             background: var(--bg-color); color: #fff; margin: 0; 
             overflow: hidden; height: 100vh; display: flex; transition: background 0.3s ease;
         }
         
+        #header-title { 
+            position: absolute; top: 20px; width: 100%; z-index: 15;
+            font-size: 1.5rem; font-weight: bold; color: var(--fg-color);
+            letter-spacing: 2px; text-transform: uppercase; pointer-events: none;
+        }
+
         #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
         canvas { display: block; }
         
@@ -25,24 +31,25 @@
         #display-container { flex-grow: 1; display: flex; flex-direction: column; align-items: center; }
         #display { 
             font-size: 10rem; font-weight: bold; color: var(--fg-color); 
-            text-shadow: 0 0 30px var(--fg-color); line-height: 1;
+            line-height: 1; transition: opacity 0.1s;
         }
+        .glow { text-shadow: 0 0 30px var(--fg-color); }
         
         .settings-container { 
             background: rgba(20, 20, 20, 0.9); backdrop-filter: blur(15px); 
             border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; 
             text-align: left; width: 280px; color: #fff; pointer-events: auto;
-            box-shadow: -10px 0 30px rgba(0,0,0,0.5); align-self: flex-start;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.5); align-self: flex-start; margin-top: 50px;
         }
         
         .settings-header { padding: 12px 15px; cursor: pointer; display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .settings-content { padding: 15px; }
+        .settings-content { padding: 15px; max-height: 75vh; overflow-y: auto; }
         .settings-container.minimized .settings-content { display: none; }
         .settings-container.minimized { width: 100px; }
 
-        .control-group { margin: 12px 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 0.85rem; }
-        select, button, input { background: #111; color: #fff; border: 1px solid #444; padding: 5px; border-radius: 4px; }
-        #initBtn { background: #27ae60; width: 100%; font-weight: bold; border: none; padding: 10px; cursor: pointer; }
+        .control-group { margin: 10px 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 0.8rem; }
+        select, button, input { background: #111; color: #fff; border: 1px solid #444; padding: 4px; border-radius: 4px; }
+        #initBtn { background: #27ae60; width: 100%; font-weight: bold; border: none; padding: 10px; cursor: pointer; margin-bottom: 10px; }
 
         #keyboard { 
             display: flex; justify-content: center; position: absolute; bottom: 0; 
@@ -50,23 +57,23 @@
         }
         
         .key { 
-            border: 1px solid #333; height: 120px; width: 38px; background: #eee; 
+            border: 1px solid #333; height: 110px; width: 36px; background: #eee; 
             flex-shrink: 0; border-radius: 0 0 4px 4px; display: flex; 
             align-items: flex-end; justify-content: center; padding-bottom: 8px; 
-            font-size: 0.7rem; color: #333; font-weight: bold; position: relative;
+            font-size: 0.65rem; color: #333; font-weight: bold; position: relative;
         }
-        
-        .key.black { background: #222; height: 75px; width: 26px; margin-left: -13px; margin-right: -13px; z-index: 21; color: #fff; }
-        .key.active { background: var(--fg-color) !important; color: #000; box-shadow: 0 0 20px var(--fg-color); }
+        .key.black { background: #222; height: 70px; width: 24px; margin-left: -12px; margin-right: -12px; z-index: 21; color: #fff; }
+        .key.active { background: var(--fg-color) !important; color: #000; box-shadow: 0 0 15px var(--fg-color); }
     </style>
 </head>
 <body>
 
+    <div id="header-title">Neural Notes Unlimited</div>
     <div id="canvas-container"><canvas id="visualizer"></canvas></div>
 
     <div id="ui-layer">
         <div id="display-container">
-            <div id="display">READY</div>
+            <div id="display" class="glow"></div>
         </div>
 
         <div class="settings-container interactive" id="settingsBox">
@@ -74,12 +81,15 @@
                 <span>Settings</span><span id="toggleIcon">−</span>
             </div>
             <div class="settings-content">
-                <button id="initBtn">1. Init MIDI</button>
-                <div class="control-group"><label>Device:</label><select id="midiIn" style="width: 150px;"></select></div>
+                <button id="initBtn">Init MIDI</button>
+                <div class="control-group"><label>Device:</label><select id="midiIn" style="width: 140px;"></select></div>
                 <div class="control-group"><label>Transpose:</label><select id="transpose"></select></div>
                 <div class="control-group"><label>BG Color:</label><input type="color" id="bgColor" value="#0b0b0b"></div>
                 <div class="control-group"><label>Swar Color:</label><input type="color" id="fgColor" value="#00ffcc"></div>
+                <div class="control-group"><label>Vis Color:</label><input type="color" id="visColor" value="#00ffcc"></div>
                 <hr style="border:0; border-top:1px solid #444; margin:10px 0;">
+                <div class="control-group"><label>Show Note:</label><input type="checkbox" id="showNote" checked></div>
+                <div class="control-group"><label>Note Glow:</label><input type="checkbox" id="glowNote" checked></div>
                 <div class="control-group"><label>Show Bars:</label><input type="checkbox" id="showBars" checked></div>
                 <div class="control-group"><label>Particles:</label><input type="checkbox" id="showParticles" checked></div>
             </div>
@@ -98,6 +108,9 @@
         const initBtn = document.getElementById('initBtn');
         const bgColorInput = document.getElementById('bgColor');
         const fgColorInput = document.getElementById('fgColor');
+        const visColorInput = document.getElementById('visColor');
+        const showNoteCheck = document.getElementById('showNote');
+        const glowNoteCheck = document.getElementById('glowNote');
         const showBars = document.getElementById('showBars');
         const showParticles = document.getElementById('showParticles');
         const display = document.getElementById('display');
@@ -105,15 +118,13 @@
         const startNote = 48; 
         const totalNotes = 37; 
         const keys = {};
+        let pressedNotes = new Set();
         let activeBars = new Map(); 
         let particles = [];
         let completedBars = [];
         let currentInput = null;
 
-        function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
+        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
         window.addEventListener('resize', resize);
         resize();
 
@@ -158,10 +169,7 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             if (showBars.checked) {
                 activeBars.forEach(bar => { bar.update(); bar.draw(); });
-                completedBars.forEach((bar, i) => { 
-                    bar.update(); bar.draw(); 
-                    if (bar.alpha <= 0 || bar.startY < 0) completedBars.splice(i, 1);
-                });
+                completedBars.forEach((bar, i) => { bar.update(); bar.draw(); if (bar.alpha <= 0 || bar.startY < 0) completedBars.splice(i, 1); });
             }
             if (showParticles.checked) {
                 particles.forEach((p, i) => { p.update(); p.draw(); if(p.life <= 0) particles.splice(i, 1); });
@@ -184,19 +192,32 @@
             const [status, note, velocity] = event.data;
             const type = status & 0xf0;
 
-            if (type === 0x90 && velocity > 0) { // Note ON
-                display.innerText = getSwarLabel(note);
+            if (type === 0x90 && velocity > 0) { 
+                pressedNotes.add(note);
+                if (showNoteCheck.checked) {
+                    display.innerText = getSwarLabel(note);
+                    display.style.opacity = "1";
+                }
                 if (keys[note]) {
                     keys[note].classList.add('active');
                     const rect = keys[note].getBoundingClientRect();
-                    const color = fgColorInput.value;
-                    activeBars.set(note, new NoteBar(rect.left, rect.width, color));
-                    if (showParticles.checked) {
-                        for(let i=0; i<8; i++) particles.push(new Particle(rect.left + rect.width/2, rect.top, color));
-                    }
+                    const vColor = visColorInput.value;
+                    activeBars.set(note, new NoteBar(rect.left, rect.width, vColor));
+                    if (showParticles.checked) for(let i=0; i<8; i++) particles.push(new Particle(rect.left + rect.width/2, rect.top, vColor));
                 }
-            } else if (type === 0x80 || (type === 0x90 && velocity === 0)) { // Note OFF
+            } else if (type === 0x80 || (type === 0x90 && velocity === 0)) { 
+                pressedNotes.delete(note);
                 if (keys[note]) keys[note].classList.remove('active');
+                
+                // Clear display if no more keys are held
+                if (pressedNotes.size === 0) {
+                    display.innerText = "";
+                } else {
+                    // Show the last note still held
+                    const lastNote = Array.from(pressedNotes).pop();
+                    display.innerText = getSwarLabel(lastNote);
+                }
+
                 const bar = activeBars.get(note);
                 if (bar) { bar.active = false; completedBars.push(bar); activeBars.delete(note); }
             }
@@ -225,24 +246,15 @@
                 const midi = await navigator.requestMIDIAccess();
                 initBtn.innerText = "MIDI Live";
                 initBtn.style.background = "#555";
-                
                 const updateDevices = () => {
                     midiSelect.innerHTML = '<option>Device List</option>';
-                    midi.inputs.forEach(input => {
-                        midiSelect.add(new Option(input.name, input.id));
-                    });
+                    midi.inputs.forEach(input => midiSelect.add(new Option(input.name, input.id)));
                 };
                 updateDevices();
-                midi.onstatechange = updateDevices;
-
                 midiSelect.onchange = () => {
                     if (currentInput) currentInput.onmidimessage = null;
                     currentInput = midi.inputs.get(midiSelect.value);
-                    if (currentInput) {
-                        currentInput.onmidimessage = onMidiMessage;
-                        display.innerText = "PLAYING";
-                        setTimeout(toggleSettings, 800);
-                    }
+                    if (currentInput) { currentInput.onmidimessage = onMidiMessage; display.innerText = "READY"; setTimeout(toggleSettings, 800); }
                 };
             } catch (err) { alert("MIDI Access Refused"); }
         }
@@ -256,10 +268,25 @@
 
         transposeSelect.onchange = buildKeyboard;
         bgColorInput.oninput = () => document.documentElement.style.setProperty('--bg-color', bgColorInput.value);
-        fgColorInput.oninput = () => document.documentElement.style.setProperty('--fg-color', fgColorInput.value);
-        initBtn.onclick = initMIDI;
+        fgColorInput.oninput = () => {
+            document.documentElement.style.setProperty('--fg-color', fgColorInput.value);
+            saveToLocal();
+        };
+        visColorInput.oninput = () => saveToLocal();
+        
+        glowNoteCheck.onchange = () => display.classList.toggle('glow', glowNoteCheck.checked);
+        showNoteCheck.onchange = () => { if(!showNoteCheck.checked) display.innerText = ""; };
 
+        initBtn.onclick = initMIDI;
         buildKeyboard();
+
+        function saveToLocal() {
+            localStorage.setItem('nnSettings', JSON.stringify({
+                fg: fgColorInput.value,
+                vis: visColorInput.value,
+                bg: bgColorInput.value
+            }));
+        }
     </script>
 </body>
 </html>
