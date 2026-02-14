@@ -15,12 +15,12 @@
         #ui-layer { position: relative; z-index: 100; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; }
         .interactive { pointer-events: auto !important; }
 
-        /* Alankar Wrapper: Pinned to Keyboard Left */
-        #alankar-wrapper { position: absolute; top: 80px; height: 150px; display: flex; justify-content: flex-start; z-index: 50; transition: opacity 0.3s; pointer-events: none; }
-        #alankar-overlay { display: flex; justify-content: flex-start; align-items: flex-end; width: 100%; height: 100%; }
-        .alankar-note { font-weight: bold; color: #444; position: relative; transition: all 0.2s ease; white-space: nowrap; flex: 0 0 auto; }
-        .alankar-note.matched { color: var(--alankar-color) !important; opacity: 1; text-shadow: 0 0 10px var(--alankar-color); transform: scale(1.2); }
-        .alankar-note.next { border-bottom: 2px solid var(--alankar-color); color: #888; }
+        /* Alankar Wrapper: Pinned and Constrained */
+        #alankar-wrapper { position: absolute; top: 100px; height: 180px; display: flex; justify-content: flex-start; z-index: 60; transition: opacity 0.3s; pointer-events: none; overflow: visible; }
+        #alankar-overlay { display: flex; justify-content: flex-start; align-items: flex-end; width: 100%; height: 100%; position: relative; }
+        .alankar-note { font-weight: bold; color: #444; position: relative; transition: all 0.2s ease; white-space: nowrap; flex: 0 0 auto; line-height: 1; }
+        .alankar-note.matched { color: var(--alankar-color) !important; opacity: 1; text-shadow: 0 0 15px var(--alankar-color); transform: scale(1.2); }
+        .alankar-note.next { border-bottom: 3px solid var(--alankar-color); color: #aaa; }
 
         #display-container { flex-grow: 1; width: 100%; display: flex; justify-content: center; align-items: center; pointer-events: none; margin-top: 100px; }
         #display { font-size: 10rem; font-weight: bold; color: var(--fg-color); line-height: 1; }
@@ -141,10 +141,10 @@
             const isVisible = document.getElementById('showAlankar').checked;
             alankarWrapper.style.opacity = isVisible ? "1" : "0";
             if (!isVisible) {
-                alankarOverlay.innerHTML = ''; 
-                alankarSequence = []; 
-            } else if (document.getElementById('alankarInput').value) {
-                parseAlankar();
+                alankarOverlay.innerHTML = '';
+                alankarSequence = [];
+            } else {
+                parseAlankar(); // Re-parse immediately
             }
             saveToLocal();
         }
@@ -163,9 +163,10 @@
         function resize() {
             canvas.width = window.innerWidth; canvas.height = window.innerHeight;
             buildKeyboard();
-            // Pinned to Keyboard Offset Left and Width
-            alankarWrapper.style.width = keyboard.offsetWidth + 'px';
-            alankarWrapper.style.left = keyboard.offsetLeft + 'px';
+            setTimeout(() => {
+                alankarWrapper.style.width = keyboard.offsetWidth + 'px';
+                alankarWrapper.style.left = keyboard.offsetLeft + 'px';
+            }, 50);
         }
         window.addEventListener('resize', resize); resize();
 
@@ -183,7 +184,7 @@
             const keyboardWidth = keyboard.offsetWidth;
             const noteCount = swaras.length;
             const calculatedSize = Math.min(1.4, (keyboardWidth / noteCount) / 30);
-            const calculatedGap = Math.min(10, (keyboardWidth / noteCount) / 5);
+            const calculatedGap = Math.min(12, (keyboardWidth / noteCount) / 6);
             alankarOverlay.style.gap = `${calculatedGap}px`;
 
             swaras.forEach((raw, idx) => {
@@ -295,31 +296,27 @@
                 keyboard.appendChild(div);
                 keys[midi] = div;
             }
-            if (alankarWrapper) {
+            // Update wrapper after layout
+            setTimeout(() => {
                 alankarWrapper.style.width = keyboard.offsetWidth + 'px';
                 alankarWrapper.style.left = keyboard.offsetLeft + 'px';
-            }
+            }, 50);
         }
 
         async function initMIDI() {
             try {
                 const midi = await navigator.requestMIDIAccess();
                 const inputs = Array.from(midi.inputs.values());
-                
                 const updateDevices = () => {
                     midiSelect.innerHTML = '';
-                    midi.inputs.forEach(input => {
-                        midiSelect.add(new Option(input.name, input.id));
-                    });
+                    midi.inputs.forEach(input => midiSelect.add(new Option(input.name, input.id)));
                 };
                 updateDevices();
-
                 midiSelect.onchange = () => {
                     if (currentMidiInput) currentMidiInput.onmidimessage = null;
                     currentMidiInput = midi.inputs.get(midiSelect.value);
                     if (currentMidiInput) currentMidiInput.onmidimessage = onMidiMessage;
                 };
-
                 if (inputs[0]) {
                     midiSelect.value = inputs[0].id;
                     midiSelect.onchange();
@@ -334,11 +331,9 @@
         fgColorInput.oninput = () => { document.documentElement.style.setProperty('--fg-color', fgColorInput.value); saveToLocal(); };
         bgColorInput.oninput = () => { document.documentElement.style.setProperty('--bg-color', bgColorInput.value); document.body.style.backgroundColor = bgColorInput.value; saveToLocal(); };
         alankarColorInput.oninput = () => { document.documentElement.style.setProperty('--alankar-color', alankarColorInput.value); saveToLocal(); };
-        
         document.getElementById('showAlankar').onchange = updateVisibilities;
         document.querySelectorAll('input[type="checkbox"]').forEach(c => c.onchange = saveToLocal);
         document.getElementById('initBtn').onclick = initMIDI;
-        
         loadFromLocal();
         buildKeyboard();
     </script>
