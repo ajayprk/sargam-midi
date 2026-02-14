@@ -15,7 +15,8 @@
         #ui-layer { position: relative; z-index: 100; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; }
         .interactive { pointer-events: auto !important; }
 
-        #alankar-wrapper { position: absolute; top: 80px; width: 80%; height: 150px; display: flex; justify-content: center; z-index: 50; transition: opacity 0.3s; }
+        /* Alankar aligned to Keyboard boundaries */
+        #alankar-wrapper { position: absolute; top: 80px; height: 150px; display: flex; justify-content: center; z-index: 50; transition: opacity 0.3s; }
         #alankar-overlay { display: flex; justify-content: center; align-items: flex-end; width: 100%; height: 100%; }
         .alankar-note { font-weight: bold; color: #444; position: relative; transition: all 0.2s ease; white-space: nowrap; flex: 0 1 auto; }
         .alankar-note.matched { color: var(--alankar-color) !important; opacity: 1; text-shadow: 0 0 10px var(--alankar-color); transform: scale(1.2); }
@@ -137,7 +138,13 @@
         }
 
         function updateVisibilities() {
-            alankarWrapper.style.opacity = document.getElementById('showAlankar').checked ? "1" : "0";
+            const isVisible = document.getElementById('showAlankar').checked;
+            alankarWrapper.style.opacity = isVisible ? "1" : "0";
+            if (!isVisible) {
+                alankarOverlay.innerHTML = ''; // Physically clear notes when hidden
+            } else if (document.getElementById('alankarInput').value) {
+                parseAlankar(); // Re-render if switching back on
+            }
             saveToLocal();
         }
 
@@ -155,7 +162,9 @@
         function resize() {
             canvas.width = window.innerWidth; canvas.height = window.innerHeight;
             buildKeyboard();
+            // Lock Alankar wrapper to keyboard position and width
             alankarWrapper.style.width = keyboard.offsetWidth + 'px';
+            alankarWrapper.style.left = keyboard.offsetLeft + 'px';
         }
         window.addEventListener('resize', resize); resize();
 
@@ -165,6 +174,7 @@
         }
 
         function parseAlankar() {
+            if (!document.getElementById('showAlankar').checked) return;
             const input = document.getElementById('alankarInput').value;
             const swaras = input.split(',').map(s => s.trim()).filter(s => s !== "");
             alankarSequence = []; currentMatchIndex = 0; alankarOverlay.innerHTML = '';
@@ -172,7 +182,7 @@
             const keyboardWidth = keyboard.offsetWidth;
             const noteCount = swaras.length;
             const calculatedSize = Math.min(1.4, (keyboardWidth / noteCount) / 30);
-            const calculatedGap = Math.min(10, (keyboardWidth / noteCount) / 4);
+            const calculatedGap = Math.min(10, (keyboardWidth / noteCount) / 5);
             alankarOverlay.style.gap = `${calculatedGap}px`;
 
             swaras.forEach((raw, idx) => {
@@ -284,7 +294,10 @@
                 keyboard.appendChild(div);
                 keys[midi] = div;
             }
-            if (alankarWrapper) alankarWrapper.style.width = keyboard.offsetWidth + 'px';
+            if (alankarWrapper) {
+                alankarWrapper.style.width = keyboard.offsetWidth + 'px';
+                alankarWrapper.style.left = keyboard.offsetLeft + 'px';
+            }
         }
 
         async function initMIDI() {
