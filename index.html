@@ -8,14 +8,18 @@
         :root { --bg-color: #0b0b0b; --fg-color: #00ffcc; --vis-color: #00ffcc; --alankar-color: #f1c40f; }
         body { font-family: 'Segoe UI', sans-serif; text-align: center; background-color: var(--bg-color); color: #fff; margin: 0; overflow: hidden; height: 100vh; display: flex; transition: background-color 0.15s ease; }
         
-        #header-title { position: absolute; top: 15px; width: 100%; z-index: 10; font-size: 1.2rem; font-weight: bold; color: var(--fg-color); letter-spacing: 2px; text-transform: uppercase; pointer-events: none; }
+        #header-title { position: absolute; top: 15px; width: 100%; z-index: 10; font-size: 1.2rem; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; pointer-events: none; }
+        #header-title a { color: var(--fg-color); text-decoration: none; pointer-events: auto; transition: opacity 0.3s; }
+        #header-title a:hover { opacity: 0.7; }
+        
         #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
         canvas { display: block; }
 
         #ui-layer { position: relative; z-index: 100; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; }
         .interactive { pointer-events: auto !important; }
 
-        #alankar-wrapper { position: absolute; top: 100px; height: 180px; display: flex; justify-content: flex-start; z-index: 60; pointer-events: none; visibility: hidden; opacity: 0; transition: opacity 0.3s; }
+        #alankar-wrapper { position: absolute; top: 100px; height: 180px; display: flex; justify-content: flex-start; z-index: 60; pointer-events: none; }
+        #alankar-wrapper.hidden { display: none !important; }
         #alankar-overlay { display: flex; justify-content: flex-start; align-items: flex-end; width: 100%; height: 100%; position: relative; }
         .alankar-note { font-weight: bold; color: #444; position: relative; transition: all 0.2s ease; white-space: nowrap; flex: 0 0 auto; line-height: 1; }
         .alankar-note.matched { color: var(--alankar-color) !important; opacity: 1; text-shadow: 0 0 15px var(--alankar-color); transform: scale(1.2); }
@@ -36,6 +40,11 @@
         #initBtn, .action-btn { background: #27ae60; width: 100%; font-weight: bold; border: none; padding: 8px; cursor: pointer; color: white; border-radius: 4px; }
         .action-btn { background: #2980b9; margin-top: 5px; }
 
+        /* Buy Me a Coffee Button */
+        #coffee-btn { position: fixed; bottom: 20px; right: 20px; z-index: 1000; background: #FFDD00; color: #000000; padding: 10px 20px; border-radius: 50px; text-decoration: none; font-weight: bold; font-size: 0.9rem; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.3); transition: transform 0.2s, box-shadow 0.2s; pointer-events: auto; }
+        #coffee-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,0.4); }
+        #coffee-btn img { width: 20px; height: 20px; }
+
         #keyboard { display: flex; justify-content: center; position: absolute; bottom: 0; width: fit-content; max-width: 100%; z-index: 400; background: rgba(0,0,0,0.9); padding: 25px 20px; pointer-events: auto; left: 50%; transform: translateX(-50%); }
         .key { border: 1px solid #333; height: 100px; width: 34px; background: #eee; flex-shrink: 0; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 8px; font-size: 0.6rem; color: #333; font-weight: bold; }
         .key.black { background: #222; height: 60px; width: 22px; margin-left: -11px; margin-right: -11px; z-index: 421; color: #fff; }
@@ -44,7 +53,7 @@
 </head>
 <body>
 
-    <div id="header-title">Neural Notes Unlimited</div>
+    <div id="header-title"><a href="https://www.youtube.com/@NeuralNotesUnlimited" target="_blank">Neural Notes Unlimited</a></div>
     <div id="alankar-wrapper"><div id="alankar-overlay"></div></div>
     <div id="canvas-container"><canvas id="visualizer"></canvas></div>
 
@@ -64,9 +73,8 @@
                 <hr style="border:0; border-top:1px solid #444; margin:10px 0;">
                 <div class="control-group"><label>Alankar File:</label><input type="file" id="alankarFile" accept=".txt" class="interactive" style="width:120px;"></div>
                 <div class="control-group"><label>Select Alankar:</label>
-                    <select id="alankarSelect" class="interactive" onchange="handleAlankarSelection()">
+                    <select id="alankarSelect" class="interactive" onchange="handleAlankarSelection()" style="width:140px;">
                         <option value="custom">Custom Alankar</option>
-                        <optgroup id="fileAlankars" label="My Loaded Alankars"></optgroup>
                     </select>
                 </div>
                 <div id="custom-alankar-input" class="control-group" style="flex-direction:column; align-items:flex-start;">
@@ -83,6 +91,12 @@
             </div>
         </div>
     </div>
+    
+    <a href="https://buymeacoffee.com/ajayprkm" target="_blank" id="coffee-btn" class="interactive">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23000000'%3E%3Cpath d='M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.9 2-2V5c0-1.11-.89-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4z'/%3E%3C/svg%3E" alt="Coffee">
+        Buy me a coffee
+    </a>
+    
     <div id="keyboard"></div>
 
     <script>
@@ -108,6 +122,127 @@
         let currentMatchIndex = 0;
         let keys = {};
         let currentMidiInput = null;
+
+        // Pre-populated traditional alankars with correct notation
+        // Suddh: Sa, Re, Ga, ma, Pa, Dha, Ni
+        // Komal: re, ga, dha, ni
+        // Teevra: Ma
+        const traditionalAlankars = [
+            // ===== BASIC PATTERNS =====
+            { name: "Basic Saptak", value: "Sa,Re,Ga,ma,Pa,Dha,Ni,Sa.,Sa.,Ni,Dha,Pa,ma,Ga,Re,Sa" },
+            
+            // ===== PRACTICE PATTERNS =====
+            { name: "Two Note Asc", value: "Sa,Re,Re,Ga,Ga,ma,ma,Pa,Pa,Dha,Dha,Ni,Ni,Sa." },
+            { name: "Two Note Desc", value: "Sa.,Ni,Ni,Dha,Dha,Pa,Pa,ma,ma,Ga,Ga,Re,Re,Sa" },
+            { name: "Three Note Pattern", value: "Sa,Re,Ga,Re,Ga,ma,Ga,ma,Pa,ma,Pa,Dha,Pa,Dha,Ni,Dha,Ni,Sa." },
+            { name: "Four Note Pattern", value: "Sa,Re,Ga,ma,Re,Ga,ma,Pa,Ga,ma,Pa,Dha,ma,Pa,Dha,Ni,Pa,Dha,Ni,Sa." },
+            { name: "Five Note Pattern", value: "Sa,Re,Ga,ma,Pa,Re,Ga,ma,Pa,Dha,Ga,ma,Pa,Dha,Ni,ma,Pa,Dha,Ni,Sa." },
+            { name: "Skip One Pattern", value: "Sa,Ga,Re,ma,Ga,Pa,ma,Dha,Pa,Ni,Dha,Sa.,Ni,Sa." },
+            { name: "Triplet Pattern", value: "Sa,Re,Ga,Sa,Re,Ga,Re,Ga,ma,Re,Ga,ma,Ga,ma,Pa,Ga,ma,Pa" },
+            { name: "Palindrome", value: "Sa,Re,Ga,ma,Pa,ma,Ga,Re,Sa,Re,Ga,ma,Pa,Dha,Pa,ma,Ga,Re,Sa" },
+            
+            // ===== RAGA YAMAN (All Shuddh except Ma Teevra) =====
+            { name: "Yaman Aroha-Avaroha", value: "Sa,Re,Ga,Ma,Pa,Dha,Ni,Sa.,Sa.,Ni,Dha,Pa,Ma,Ga,Re,Sa" },
+            { name: "Yaman Pakad", value: "Ni,Re,Ga,Re,Sa,Ni,Re,Ga,Ma,Pa,Ma,Ga,Re,Sa" },
+            { name: "Yaman Pattern", value: "Sa,Re,Ga,Ma,Ga,Re,Sa,Ni,Re,Ga,Ma,Pa,Ma,Dha,Ni,Sa." },
+            
+            // ===== RAGA BHAIRAV (re, dha Komal) =====
+            { name: "Bhairav Aroha-Avaroha", value: "Sa,re,Ga,ma,Pa,dha,Ni,Sa.,Sa.,Ni,dha,Pa,ma,Ga,re,Sa" },
+            { name: "Bhairav Pakad", value: "Sa,re,Ga,ma,Ga,re,Sa,ma,Pa,dha,Ni,Sa." },
+            { name: "Bhairav Pattern", value: "Sa,ma,Ga,re,Sa,re,Ga,ma,Pa,dha,Ni,dha,Pa,ma,Ga,re,Sa" },
+            
+            // ===== RAGA BHAIRAVI (re, ga, dha, ni Komal) =====
+            { name: "Bhairavi Aroha-Avaroha", value: "Sa,re,ga,ma,Pa,dha,ni,Sa.,Sa.,ni,dha,Pa,ma,ga,re,Sa" },
+            { name: "Bhairavi Pakad", value: "Sa,re,ga,ma,ga,re,Sa,Pa,dha,ni,dha,Pa" },
+            { name: "Bhairavi Pattern", value: "ni,Sa,re,ga,ma,Pa,dha,ni,dha,Pa,ma,ga,re,Sa" },
+            
+            // ===== RAGA KAFI (ga, ni Komal) =====
+            { name: "Kafi Aroha-Avaroha", value: "Sa,Re,ga,ma,Pa,Dha,ni,Sa.,Sa.,ni,Dha,Pa,ma,ga,Re,Sa" },
+            { name: "Kafi Pakad", value: "ma,Pa,Dha,ni,Sa.,ni,Dha,Pa,ma,ga,Re,Sa" },
+            { name: "Kafi Pattern", value: "Sa,Re,ga,ma,Pa,ma,ga,Re,ga,ma,Pa,Dha,ni,Dha,Pa" },
+            
+            // ===== RAGA BILAWAL (All Shuddh) =====
+            { name: "Bilawal Aroha-Avaroha", value: "Sa,Re,Ga,ma,Pa,Dha,Ni,Sa.,Sa.,Ni,Dha,Pa,ma,Ga,Re,Sa" },
+            { name: "Bilawal Pakad", value: "Sa,Re,Ga,ma,Pa,Dha,Ni,Dha,Pa,ma,Ga,Re,Sa" },
+            { name: "Bilawal Pattern", value: "Ga,ma,Re,Ga,Sa,Re,Ga,ma,Pa,Ga,ma,Pa,Dha,Ni,Sa." },
+            
+            // ===== RAGA KHAMAJ (ni Komal) =====
+            { name: "Khamaj Aroha-Avaroha", value: "Sa,Re,Ga,ma,Pa,Dha,ni,Sa.,Sa.,ni,Dha,Pa,ma,Ga,ma,Re,Sa" },
+            { name: "Khamaj Pakad", value: "Ga,ma,Pa,ni,Dha,Pa,ma,Ga,ma,Re,Sa" },
+            { name: "Khamaj Pattern", value: "Sa,Re,Ga,ma,Pa,Ga,ma,Dha,ni,Dha,Pa,ma,Ga,Re,Sa" },
+            
+            // ===== RAGA ASAVARI (ga, dha, ni Komal) =====
+            { name: "Asavari Aroha-Avaroha", value: "Sa,Re,ga,ma,Pa,dha,ni,Sa.,Sa.,ni,dha,Pa,ma,ga,Re,Sa" },
+            { name: "Asavari Pakad", value: "Re,ma,ga,ma,dha,ni,dha,Pa,ma,ga,Re,Sa" },
+            { name: "Asavari Pattern", value: "Sa,Re,ga,Re,Sa,ni,dha,ni,Sa.,ni,dha,Pa,ma,ga,Re,Sa" },
+            
+            // ===== RAGA TODI (re, ga, dha Komal; Ma Teevra) =====
+            { name: "Todi Aroha-Avaroha", value: "Sa,re,ga,Ma,Pa,dha,Ni,Sa.,Sa.,Ni,dha,Pa,Ma,ga,re,Sa" },
+            { name: "Todi Pakad", value: "re,ga,Ma,dha,Ni,dha,Ma,ga,re,Sa" },
+            { name: "Todi Pattern", value: "dha,Ni,Sa.,re,Sa.,Ni,dha,Ma,ga,re,Sa" },
+            
+            // ===== RAGA PURVI (re, dha Komal; Ma Teevra) =====
+            { name: "Purvi Aroha-Avaroha", value: "Sa,re,Ga,Ma,Pa,dha,Ni,Sa.,Sa.,Ni,dha,Pa,Ma,Ga,re,Sa" },
+            { name: "Purvi Pakad", value: "Ga,Ma,Pa,Ni,Sa.,Ni,dha,Pa,Ma,Ga,re,Sa" },
+            { name: "Purvi Pattern", value: "re,Ga,Ma,Ga,re,Sa,Ma,Pa,dha,Ni,dha,Pa,Ma,Ga,re,Sa" },
+            
+            // ===== RAGA MARWA (re, dha Komal; Ma Teevra; Vakra) =====
+            { name: "Marwa Aroha-Avaroha", value: "Sa,re,Ma,Pa,dha,Ni,Sa.,Sa.,Ni,dha,Pa,Ma,re,Sa" },
+            { name: "Marwa Pakad", value: "Ni,re,Ma,Pa,Ni,dha,Ni,Sa.,Ni,dha,Pa,Ma,re,Sa" },
+            { name: "Marwa Pattern", value: "Sa,re,Ma,dha,Ma,re,Sa,Ma,Pa,Ni,dha,Pa,Ma,re,Sa" },
+            
+            // ===== RAGA MALKAUNS (ga, ni Komal; Pentatonic) =====
+            { name: "Malkauns Aroha-Avaroha", value: "Sa,ga,Pa,dha,ni,Sa.,Sa.,ni,dha,Pa,ga,Sa" },
+            { name: "Malkauns Pakad", value: "ni,Sa,ga,ma,dha,ni,dha,Pa,ga,Sa" },
+            { name: "Malkauns Pattern", value: "Sa,ga,ma,Pa,dha,Pa,ma,ga,Sa,ni,dha,ni,Sa." },
+            
+            // ===== RAGA BAGESHRI (ga, ni Komal; Vakra Aroha) =====
+            { name: "Bageshri Aroha-Avaroha", value: "Sa,ga,ma,Pa,ni,Sa.,Sa.,ni,Dha,Pa,ma,ga,Re,Sa" },
+            { name: "Bageshri Pakad", value: "ni,Sa,Re,Sa,ni,Dha,ma,ga,Re,Sa" },
+            { name: "Bageshri Pattern", value: "ma,Pa,ni,Dha,ni,Sa.,ni,Dha,Pa,ma,ga,Re,Sa" },
+            
+            // ===== RAGA DES (Vakra Aroha) =====
+            { name: "Des Aroha-Avaroha", value: "Sa,Re,ma,Pa,Ni,Sa.,Sa.,Ni,Dha,Pa,ma,Ga,Re,Sa" },
+            { name: "Des Pakad", value: "Re,ma,Pa,Ni,Re,Sa,Ni,Dha,Pa,ma,Ga,Re,Sa" },
+            
+            // ===== RAGA BHOOPALI/BHOOP (Pentatonic; All Shuddh) =====
+            { name: "Bhoopali Aroha-Avaroha", value: "Sa,Re,Ga,Pa,Dha,Sa.,Sa.,Dha,Pa,Ga,Re,Sa" },
+            { name: "Bhoopali Pakad", value: "Ga,Re,Sa,Dha,Pa,Ga,Re,Ga,Pa,Dha,Sa." },
+            { name: "Bhoopali Pattern", value: "Sa,Re,Ga,Pa,Ga,Re,Sa,Re,Ga,Pa,Dha,Pa,Ga,Re,Sa" },
+            
+            // ===== RAGA DURGA (Pentatonic; All Shuddh) =====
+            { name: "Durga Aroha-Avaroha", value: "Sa,Re,ma,Pa,Dha,Sa.,Sa.,Dha,Pa,ma,Re,Sa" },
+            { name: "Durga Pakad", value: "ma,Pa,Dha,Pa,ma,Re,Sa,Re,ma,Pa,Dha,Sa." },
+            
+            // ===== RAGA SHIVRANJANI (re, ga, dha Komal; Pentatonic) =====
+            { name: "Shivranjani Aroha-Avaroha", value: "Sa,re,ga,Pa,dha,Sa.,Sa.,dha,Pa,ga,re,Sa" },
+            { name: "Shivranjani Pakad", value: "Sa,dha,Pa,ga,re,Sa,re,ga,Pa,dha,Sa." },
+            
+            // ===== RAGA DESH MALHAR (ni Komal; Vakra) =====
+            { name: "Desh Malhar Aroha-Avaroha", value: "Sa,ma,Re,ma,Pa,Dha,ni,Dha,Sa.,Sa.,ni,Dha,Pa,ma,Ga,Re,Sa" },
+            { name: "Desh Malhar Pakad", value: "ma,Re,ma,Pa,Dha,ni,Dha,Sa.,ni,Dha,Pa,ma,Ga,Re,Sa" },
+            
+            // ===== ADDITIONAL COMPLEX PATTERNS =====
+            { name: "Octave Jump", value: "Sa,Sa.,Re,Re.,Ga,Ga.,ma,ma.,Pa,Pa.,Dha,Dha.,Ni,Ni." },
+            { name: "Seven Note Sequence", value: "Sa,Re,Ga,ma,Pa,Dha,Ni,Re,Ga,ma,Pa,Dha,Ni,Sa." },
+            { name: "Reverse Cascade", value: "Sa.,Ni,Dha,Pa,ma,Ga,Re,Ni,Dha,Pa,ma,Ga,Re,Sa" },
+        ];
+
+        function populateTraditionalAlankars() {
+            const select = document.getElementById('alankarSelect');
+            
+            // Create traditional alankars optgroup
+            const traditionalGroup = document.createElement('optgroup');
+            traditionalGroup.label = 'Traditional Alankars';
+            traditionalGroup.id = 'traditionalAlankars';
+            
+            traditionalAlankars.forEach(alankar => {
+                const option = new Option(alankar.name, alankar.value);
+                traditionalGroup.appendChild(option);
+            });
+            
+            select.appendChild(traditionalGroup);
+        }
 
         function saveToLocal() {
             localStorage.setItem('nnSettings', JSON.stringify({
@@ -137,9 +272,14 @@
         }
 
         function updateVisibilities() {
-            const isVisible = document.getElementById('showAlankar').checked;
-            alankarWrapper.style.visibility = isVisible && alankarSequence.length > 0 ? "visible" : "hidden";
-            alankarWrapper.style.opacity = isVisible && alankarSequence.length > 0 ? "1" : "0";
+            const showAlankarChecked = document.getElementById('showAlankar').checked;
+            const hasSequence = alankarSequence.length > 0;
+            
+            if (showAlankarChecked && hasSequence) {
+                alankarWrapper.classList.remove('hidden');
+            } else {
+                alankarWrapper.classList.add('hidden');
+            }
             saveToLocal();
         }
 
@@ -147,9 +287,25 @@
             const reader = new FileReader();
             reader.onload = function(ev) {
                 const lines = ev.target.result.split('\n').filter(l => l.trim() !== "");
-                const group = document.getElementById('fileAlankars');
-                group.innerHTML = '';
-                lines.forEach((line, i) => group.add(new Option(`Line ${i+1}`, line.trim())));
+                const select = document.getElementById('alankarSelect');
+                
+                // Remove old custom alankars group if exists
+                const oldGroup = document.getElementById('fileAlankars');
+                if (oldGroup) oldGroup.remove();
+                
+                // Create new custom alankars group
+                const customGroup = document.createElement('optgroup');
+                customGroup.label = 'My Loaded Alankars';
+                customGroup.id = 'fileAlankars';
+                
+                lines.forEach((line, i) => {
+                    const option = new Option(`Custom ${i+1}`, line.trim());
+                    customGroup.appendChild(option);
+                });
+                
+                // Insert custom group AFTER the "Custom Alankar" option but BEFORE traditional alankars
+                const traditionalGroup = document.getElementById('traditionalAlankars');
+                select.insertBefore(customGroup, traditionalGroup);
             };
             reader.readAsText(e.target.files[0]);
         });
@@ -158,11 +314,16 @@
             canvas.width = window.innerWidth; canvas.height = window.innerHeight;
             buildKeyboard();
             setTimeout(() => {
-                alankarWrapper.style.width = keyboard.offsetWidth + 'px';
-                alankarWrapper.style.left = keyboard.offsetLeft + 'px';
+                updateAlankarPosition();
             }, 50);
         }
         window.addEventListener('resize', resize); resize();
+
+        function updateAlankarPosition() {
+            const keyboardRect = keyboard.getBoundingClientRect();
+            alankarWrapper.style.width = keyboardRect.width + 'px';
+            alankarWrapper.style.left = keyboardRect.left + 'px';
+        }
 
         function handleAlankarSelection() {
             const select = document.getElementById('alankarSelect');
@@ -186,7 +347,7 @@
             alankarOverlay.style.gap = `${calculatedGap}px`;
 
             swaras.forEach((raw, idx) => {
-                let swar = raw.replace('.', '');
+                let swar = raw.replace(/\./g, '');
                 let rank = noteRank[swar] || 0;
                 if (raw.startsWith('.')) rank -= 12;
                 if (raw.endsWith('.')) rank += 12;
@@ -202,8 +363,24 @@
                 alankarOverlay.appendChild(noteDiv);
                 alankarSequence.push({ swar: dSwar, el: noteDiv });
             });
+            
+            updateAlankarPosition();
             updateVisibilities();
-            saveToLocal();
+        }
+
+        // FIX #1: Reset alankar when complete
+        function resetAlankar() {
+            // Remove all matched classes
+            alankarSequence.forEach(item => {
+                item.el.classList.remove('matched');
+                item.el.classList.remove('next');
+            });
+            
+            // Reset to first note
+            currentMatchIndex = 0;
+            if (alankarSequence[0]) {
+                alankarSequence[0].el.classList.add('next');
+            }
         }
 
         function triggerFlash() {
@@ -215,12 +392,22 @@
 
         function checkMatch(playedSwar) {
             if (!document.getElementById('showAlankar').checked || alankarSequence.length === 0 || currentMatchIndex >= alankarSequence.length) return;
+            
             if (playedSwar === alankarSequence[currentMatchIndex].swar) {
                 alankarSequence[currentMatchIndex].el.classList.remove('next');
                 alankarSequence[currentMatchIndex].el.classList.add('matched');
                 currentMatchIndex++;
-                if (alankarSequence[currentMatchIndex]) alankarSequence[currentMatchIndex].el.classList.add('next');
-            } else { triggerFlash(); }
+                
+                // Check if alankar is complete
+                if (currentMatchIndex >= alankarSequence.length) {
+                    // Reset immediately for fast practice (chaugun, etc.)
+                    resetAlankar();
+                } else if (alankarSequence[currentMatchIndex]) {
+                    alankarSequence[currentMatchIndex].el.classList.add('next');
+                }
+            } else { 
+                triggerFlash(); 
+            }
         }
 
         class Particle {
@@ -296,8 +483,7 @@
                 keys[midi] = div;
             }
             setTimeout(() => {
-                alankarWrapper.style.width = keyboard.offsetWidth + 'px';
-                alankarWrapper.style.left = keyboard.offsetLeft + 'px';
+                updateAlankarPosition();
             }, 50);
         }
 
@@ -332,6 +518,9 @@
         document.getElementById('showAlankar').onchange = updateVisibilities;
         document.querySelectorAll('input[type="checkbox"]').forEach(c => c.onchange = saveToLocal);
         document.getElementById('initBtn').onclick = initMIDI;
+        
+        // Initialize traditional alankars on load
+        populateTraditionalAlankars();
         loadFromLocal();
         buildKeyboard();
     </script>
