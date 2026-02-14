@@ -15,8 +15,7 @@
         #ui-layer { position: relative; z-index: 100; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; }
         .interactive { pointer-events: auto !important; }
 
-        /* Alankar Wrapper: Pinned and Constrained */
-        #alankar-wrapper { position: absolute; top: 100px; height: 180px; display: flex; justify-content: flex-start; z-index: 60; transition: opacity 0.3s; pointer-events: none; overflow: visible; }
+        #alankar-wrapper { position: absolute; top: 100px; height: 180px; display: flex; justify-content: flex-start; z-index: 60; pointer-events: none; visibility: hidden; opacity: 0; transition: opacity 0.3s; }
         #alankar-overlay { display: flex; justify-content: flex-start; align-items: flex-end; width: 100%; height: 100%; position: relative; }
         .alankar-note { font-weight: bold; color: #444; position: relative; transition: all 0.2s ease; white-space: nowrap; flex: 0 0 auto; line-height: 1; }
         .alankar-note.matched { color: var(--alankar-color) !important; opacity: 1; text-shadow: 0 0 15px var(--alankar-color); transform: scale(1.2); }
@@ -139,13 +138,8 @@
 
         function updateVisibilities() {
             const isVisible = document.getElementById('showAlankar').checked;
-            alankarWrapper.style.opacity = isVisible ? "1" : "0";
-            if (!isVisible) {
-                alankarOverlay.innerHTML = '';
-                alankarSequence = [];
-            } else {
-                parseAlankar(); // Re-parse immediately
-            }
+            alankarWrapper.style.visibility = isVisible && alankarSequence.length > 0 ? "visible" : "hidden";
+            alankarWrapper.style.opacity = isVisible && alankarSequence.length > 0 ? "1" : "0";
             saveToLocal();
         }
 
@@ -176,11 +170,15 @@
         }
 
         function parseAlankar() {
-            if (!document.getElementById('showAlankar').checked) return;
             const input = document.getElementById('alankarInput').value;
             const swaras = input.split(',').map(s => s.trim()).filter(s => s !== "");
             alankarSequence = []; currentMatchIndex = 0; alankarOverlay.innerHTML = '';
             
+            if (swaras.length === 0) {
+                updateVisibilities();
+                return;
+            }
+
             const keyboardWidth = keyboard.offsetWidth;
             const noteCount = swaras.length;
             const calculatedSize = Math.min(1.4, (keyboardWidth / noteCount) / 30);
@@ -204,6 +202,7 @@
                 alankarOverlay.appendChild(noteDiv);
                 alankarSequence.push({ swar: dSwar, el: noteDiv });
             });
+            updateVisibilities();
             saveToLocal();
         }
 
@@ -296,7 +295,6 @@
                 keyboard.appendChild(div);
                 keys[midi] = div;
             }
-            // Update wrapper after layout
             setTimeout(() => {
                 alankarWrapper.style.width = keyboard.offsetWidth + 'px';
                 alankarWrapper.style.left = keyboard.offsetLeft + 'px';
